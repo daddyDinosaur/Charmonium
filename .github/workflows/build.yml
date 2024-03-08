@@ -1,0 +1,144 @@
+name: Run Gradle Build
+on: [ push ]
+jobs:
+  gradle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v3
+      - name: Get Gradle version and check if it's pre release
+        run: |
+          VERSION=$(grep -Po '^version=.*' gradle.properties | cut -d= -f2)
+          VERSION=${VERSION#[[:space:]]}
+          SHOULD_RELEASE=$(grep -Po '^shouldRelease=.*' gradle.properties | cut -d= -f2)
+          SHOULD_RELEASE=${SHOULD_RELEASE#[[:space:]]}
+          echo "$VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          if [[ $VERSION == *-pre* ]]
+          then
+            echo "Version is pre-release"
+            RELEASE_TYPE="pre-release"
+          else
+            echo "Version is full release"
+            RELEASE_TYPE="full"
+          fi
+          echo "Version is $VERSION and release type is $RELEASE_TYPE"
+          echo "RELEASE_TYPE=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "shouldRelease=$SHOULD_RELEASE" >> $GITHUB_OUTPUT
+        id: get_version
+      - name: Get short commit sha
+        id: short_sha
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+      - uses: actions/setup-java@v3
+        name: Setup Java
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/gradle-build-action@v2
+        name: Setup Gradle
+      - name: Execute Gradle build
+        run: ./gradlew build
+      - uses: actions/upload-artifact@v3
+        name: Upload built mod JAR
+        with:
+          name: mod-jar
+          path: build/libs/*.jar
+      - name: Create release with files
+        uses: softprops/action-gh-release@v1
+        id: create_release
+        if: steps.get_version.outputs.shouldRelease == 'true'
+        with:
+          draft: false
+          prerelease: ${{ steps.get_version.outputs.RELEASE_TYPE == 'pre-release' }}
+          name: FarmHelperV2 ${{ steps.get_version.outputs.VERSION }}
+          tag_name: ${{ steps.get_version.outputs.VERSION }}.${{ steps.short_sha.outputs.sha_short }}
+          files: |
+            build/libs/*.jar
+          body: |
+            Changelog:
+            ${{ github.event.head_commit.message }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      # Step 5: Check for required secret variables
+      - name: Check for DISCORD_WEBHOOK_URL
+        id: check_secrets
+        run: |
+          if [[ -z "${{ secrets.DISCORD_WEBHOOK_URL }}" ]]
+          then
+            echo "Secret DISCORD_WEBHOOK_URL not provided, skipping tasks"
+            echo "result=failure" >> $GITHUB_OUTPUT
+          else
+            echo "result=success" >> $GITHUB_OUTPUT
+          fi
+
+      # Step 6: Get variables for embed message
+      - name: Send embed message with timestamp and footer
+        id: variables
+        if: ${{ (steps.check_secrets.outputs.result == 'success') && (steps.get_version.outputs.shouldRelease == 'true') }}
+        run: |
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
+          LONG_DATE=$(date -u +"%A, %B %-d, %Y at %T")
+          COMMIT=${{ toJSON(github.event.head_commit.message) }}
+          COMMIT_URL=${{ github.event.head_commit.url }}
+          SHORT_COMMIT_SHA=${{ steps.short_sha.outputs.sha_short }}
+          escaped_commit_message=$(echo "${COMMIT}" | sed -z 's/\\n/\\n/g')
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          if [[ $VERSION == *-pre ]]
+          then
+              TITLE="Pre-Release"
+          else
+              TITLE="Release"
+          fi
+          TITLE="${TITLE} ${VERSION}" >> $GITHUB_OUTPUT
+          
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "LONG_DATE=$LONG_DATE" >> $GITHUB_OUTPUT
+          echo "COMMIT_URL=$COMMIT_URL" >> $GITHUB_OUTPUT
+          echo "SHORT_COMMIT_SHA=$SHORT_COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "escaped_commit_message=$escaped_commit_message" >> $GITHUB_OUTPUT
+          echo "TITLE=$TITLE" >> $GITHUB_OUTPUT
+
+        # Step 7: Send embed message with files
+      - name: Send embed message with files
+        if: ${{ (steps.check_secrets.outputs.result == 'success') && (steps.get_version.outputs.shouldRelease == 'true') }}
+        uses: hugoalh/send-discord-webhook-ghaction@v6.0.0
+        with:
+          key: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          username: FarmHelper Releaser
+          avatar_url: https://cdn.discordapp.com/attachments/861700235890130986/1144673641951395982/icon.png
+          embeds: |
+            [
+              {
+                "title": "FarmHelper Update ${{ steps.variables.outputs.TITLE }}",
+                "description": "FarmHelper has been updated with the following changes:",
+                "color": "Random",
+                "thumbnail": {
+                  "url": "https://cdn.discordapp.com/attachments/861700235890130986/1144673641951395982/icon.png"
+                },
+                "fields": [
+                  {
+                    "name": "Latest Commit",
+                    "value": "**${{ steps.variables.outputs.escaped_commit_message }}**"
+                  },
+                  {
+                    "name": "Commit ID",
+                    "value": "[View Commit (${{ steps.variables.outputs.SHORT_COMMIT_SHA }})](${{ steps.variables.outputs.COMMIT_URL }}) _To learn more about the changes, click on the link!_"
+                  }
+                ],
+                "footer": {
+                  "text": "Updated: ${{ steps.variables.outputs.LONG_DATE }}"
+                }
+              }
+            ]
+
+      # Step 7: Send built JAR files to Discord webhook
+      - name: Send build artifacts to Discord webhook
+        if: ${{ (steps.check_secrets.outputs.result == 'success') && (steps.get_version.outputs.shouldRelease == 'true') }}
+        run: |
+          cd build/libs
+          for file in *.jar; do
+            curl -X POST -H "Content-Type: multipart/form-data" \
+              -F "file=@$file" \
+              ${{ secrets.DISCORD_WEBHOOK_URL }}
+          done

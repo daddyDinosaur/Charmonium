@@ -1,0 +1,876 @@
+So, that was all the kotlin code. Here is my AStarPathFinding in java. See if you can see anything done well in the kotlin that could be migrated to the java code below.
+
+AStarPathFinding.Java:
+"package com.mit.features.pathfind.main;
+
+import com.mit.features.pathfind.utils.*;
+import com.mit.features.render.RenderMultipleBlocksMod;
+import com.mit.global.Dependencies;
+import com.mit.util.BlockUtils;
+import com.mit.util.ChatUtils;
+import com.mit.util.MathUtils;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.PriorityQueue;
+import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.Vec3;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+
+public class AStarPathFinder extends Utils {
+
+  public static HashSet<BlockNodeClass> closedSet = new HashSet<>();
+
+  public BlockPos startBlock = null;
+  public BlockPos endBlock = null;
+
+  boolean isStart;
+  int ticks;
+
+  int opened = 0;
+  int closed = 0;
+
+  public List<BlockNodeClass> run(PathFinderConfig pathFinderConfig) {
+    int depth = 0;
+    isStart = true;
+
+    PriorityQueue<BlockNodeClass> openSet = new PriorityQueue<>(new BlockNodeCompare());
+    closedSet = new HashSet<>();
+    HashSet<BlockNodeClass> openList = new HashSet<>();
+
+    BlockNodeClass previousNode = null;
+    BlockNodeClass startPoint = Utils.getClassOfStarting(
+      pathFinderConfig.startingBlock,
+      pathFinderConfig.destinationBlock
+    );
+
+    startBlock = pathFinderConfig.startingBlock;
+    endBlock = pathFinderConfig.destinationBlock;
+
+    if (pathFinderConfig.startingBlock.equals(pathFinderConfig.destinationBlock)) {
+      List<BlockNodeClass> ls = new ArrayList<>();
+      ls.add(Utils.getClassOfStarting(pathFinderConfig.startingBlock, pathFinderConfig.destinationBlock));
+
+      return ls;
+    }
+
+    BlockNodeClass endPoint = Utils.getClassOfEnding(pathFinderConfig.startingBlock, pathFinderConfig.destinationBlock);
+    openSet.add(Utils.getClassOfStarting(pathFinderConfig.startingBlock, pathFinderConfig.destinationBlock));
+
+    while (depth <= pathFinderConfig.maxIterations && !openSet.isEmpty()) {
+      opened = openSet.size();
+      closed = closedSet.size();
+
+      //----------------------------------------------------------------------
+      //| hCost ====> distance from end node.                                |
+      //| gCost ====> distance from start node.                              |
+      //| fCost ====> gCost + hCost.                                         |
+      //----------------------------------------------------------------------
+
+      BlockNodeClass node = openSet.poll();
+      closedSet.add(node);
+
+      if (node.blockPos.equals(endBlock) && node.parentOfBlock != null) {
+        endPoint.parentOfBlock = node.parentOfBlock;
+        isStart = false;
+
+        return Utils.retracePath(startPoint, endPoint);
+      }
+
+      List<BlockNodeClass> children = Utils.getBlocksAround(node, startBlock, endBlock);
+      for (BlockNodeClass child : children) {
+        if (closedSet.contains(child)) {
+          openSet.remove(child);
+          openList.remove(child);
+          continue;
+        }
+
+        Utils.ReturnClass typeAction = Utils.isAbleToInteract(child);
+
+        if (typeAction == null) {
+          continue;
+        }
+
+        child.actionType = typeAction.actionType;
+        double newGCost =
+          child.parentOfBlock.gCost + MathUtils.distanceFromTo(child.blockPos, child.parentOfBlock.blockPos);
+        if (!openList.contains(child) || newGCost < child.gCost) {
+          child.gCost += Costs.calcOtherTotalCost(child, pathFinderConfig.widePathWidth);
+          child.totalCost = child.hCost + child.gCost;
+
+          openList.add(child);
+          openSet.add(child);
+        }
+      }
+
+      depth++;
+    }
+
+    isStart = false;
+    return null;
+  }
+
+  public List<Vec3> fromClassToVec(List<BlockNodeClass> blockNode) {
+    List<Vec3> returnList = new ArrayList<>();
+
+    for (BlockNodeClass block : blockNode) {
+      returnList.add(block.getVec());
+    }
+
+    return returnList;
+  }
+
+  public PathFinderConfig getWalkConfig(BlockPos bp1, BlockPos bp2) {
+    return new PathFinderConfig(
+      false,
+      false,
+      false,
+      false,
+      false,
+      10,
+      100000,
+      1000,
+      bp1,
+      bp2,
+      new Block[] { Blocks.air },
+      new Block[] { Blocks.air },
+      100,
+      0
+    );
+  }
+
+  @SubscribeEvent
+  public void onTick(TickEvent.ClientTickEvent event) {
+    if (!this.isStart) return;
+    if (this.ticks >= 50) {
+      this.ticks = 0;
+      ChatUtils.chat("Update: Opened " + this.opened + ". And closed " + this.closed);
+    }
+
+    this.ticks++;
+  }
+}"
+
+ActionTypes.java:
+"package com.mit.features.pathfind.utils;
+
+public enum ActionTypes {
+  JUMP,
+  WALK,
+  FALL,
+  BREAK,
+}"
+
+BlockNodeClass.java:
+"package com.mit.features.pathfind.utils;
+
+import com.mit.features.render.RenderPoints;
+import com.mit.global.Dependencies;
+import com.mit.util.BlockUtils;
+import com.mit.util.ChatUtils;
+import com.mit.util.MathUtils;
+import java.util.HashSet;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.Vec3;
+
+@Getter
+@AllArgsConstructor
+public class BlockNodeClass extends BlockUtils {
+
+  public BlockNodeClass parentOfBlock;
+  public BlockPos blockPos;
+
+  // Costs
+  public double gCost;
+  public double hCost;
+  public double totalCost;
+
+  // Other
+  public ActionTypes actionType;
+  public HashSet<BlockPos> broken;
+
+  public BlockPos blockPos() {
+    return this.blockPos;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof BlockNodeClass) {
+      return this.blockPos.equals(((BlockNodeClass) other).blockPos);
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return this.blockPos.hashCode();
+  }
+
+  public Boolean isSame(BlockPos block) {
+    return this.blockPos.equals(block);
+  }
+
+  public Vec3 getVec() {
+    return fromBPToVec(this.blockPos);
+  }
+
+  public boolean isOnSide() {
+    return MathUtils.distanceFromTo(this.blockPos, this.parentOfBlock.blockPos) > 1;
+  }
+
+  public boolean isClearOnSides() {
+    if (this.parentOfBlock == null) return false;
+
+    BlockPos blockPos = this.parentOfBlock.blockPos;
+
+    Vec3 perpNorm = MathUtils.getNormalVecBetweenVecsRev(
+      BlockUtils.fromBPToVec(this.blockPos),
+      BlockUtils.fromBPToVec(blockPos)
+    );
+
+    Vec3 centofLine = new Vec3(
+      (double) (blockPos.getX() + this.blockPos.getX()) / 2,
+      (double) (blockPos.getY() + this.blockPos.getY()) / 2,
+      (double) (blockPos.getZ() + this.blockPos.getZ()) / 2
+    );
+
+    BlockPos b01 = new BlockPos(
+      centofLine.xCoord + perpNorm.xCoord,
+      centofLine.yCoord,
+      centofLine.zCoord + perpNorm.zCoord
+    );
+    BlockPos b02 = new BlockPos(
+      centofLine.xCoord - perpNorm.xCoord,
+      centofLine.yCoord,
+      centofLine.zCoord - perpNorm.zCoord
+    );
+
+    BlockPos b11 = new BlockPos(
+      centofLine.xCoord + perpNorm.xCoord,
+      centofLine.yCoord + 1,
+      centofLine.zCoord + perpNorm.zCoord
+    );
+    BlockPos b12 = new BlockPos(
+      centofLine.xCoord - (perpNorm.xCoord),
+      centofLine.yCoord + 1,
+      centofLine.zCoord - (perpNorm.zCoord)
+    );
+
+    return (
+      !BlockUtils.isBlockSolid(b01) &&
+      !BlockUtils.isBlockSolid(b02) &&
+      !BlockUtils.isBlockSolid(b11) &&
+      !BlockUtils.isBlockSolid(b12)
+    );
+  }
+}"
+
+BlockNodeCompare.java:
+"package com.mit.features.pathfind.utils;
+
+import java.util.Comparator;
+
+public class BlockNodeCompare implements Comparator<BlockNodeClass> {
+
+  @Override
+  public int compare(BlockNodeClass one, BlockNodeClass two) {
+    int totalCostComparison = Double.compare(one.totalCost, two.totalCost);
+    int hCostComparison = Double.compare(one.hCost, two.hCost);
+
+    if (totalCostComparison < 0 && hCostComparison < 0) {
+      return -1;
+    }
+
+    return Double.compare(one.totalCost + one.hCost, two.totalCost + two.hCost);
+  }
+}"
+
+Costs.java:
+"package com.mit.features.pathfind.utils;
+
+import com.mit.global.Dependencies;
+import com.mit.util.BlockUtils;
+import com.mit.util.MathUtils;
+import com.mit.util.PacketUtils;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.Vec3;
+
+public class Costs {
+
+  public static double calculateGCost(BlockNodeClass nodeClass, BlockPos startBlock) {
+    return MathUtils.distanceFromTo(nodeClass.blockPos, startBlock);
+  }
+
+  public static double getDistCost(BlockNodeClass node) {
+    return node.isOnSide() ? 0.5 : 0;
+  }
+
+  public static double calculateHCost(BlockNodeClass nodeClass, BlockPos finalBlock) {
+    return MathUtils.distanceFromTo(nodeClass.blockPos, finalBlock);
+  }
+
+  public static double getSlabCost(BlockNodeClass block) {
+    String name = BlockUtils.getBlockType(block.blockPos.down()).getRegistryName();
+    return (getDistCost(block) == 0 && (name.contains("slab") || name.contains("layer"))) ? -1 : 0;
+  }
+
+  public static double calculateFullCostDistance(BlockNodeClass nodeClass, BlockPos start, BlockPos end) {
+    return calculateGCost(nodeClass, start) + calculateHCost(nodeClass, end);
+  }
+
+  public static double calculateGCostBlockPos(BlockPos pos1, BlockPos startBlock) {
+    return MathUtils.distanceFromTo(pos1, startBlock);
+  }
+
+  public static double calculateHCostBlockPos(BlockPos pos1, BlockPos finalBlock) {
+    return MathUtils.distanceFromTo(pos1, finalBlock);
+  }
+
+  public static double calcOtherTotalCost(BlockNodeClass child, int pathWidth) {
+    // Calc random costs like surrounding etc.
+    return (
+      Utils.calculateSurroundingsDoubleCost(child.blockPos.up(), pathWidth) +
+      Costs.getActionCost(child.actionType) +
+      Costs.getSlabCost(child) +
+      //Costs.getDistCost(child) +
+      Costs.getPathWidthCost(child, child.parentOfBlock) +
+      Costs.calcDirectionChange(child)
+    );
+  }
+
+  private static double calcDirectionChange(BlockNodeClass node) {
+    double cost = 0;
+    double c = Math.abs(MathUtils.minusAbs(node.blockPos.getX(), node.parentOfBlock.blockPos.getX()));
+    cost += c == 0 ? 0 : c - 1;
+
+    double c1 = Math.abs(MathUtils.minusAbs(node.blockPos.getX(), node.parentOfBlock.blockPos.getX()));
+    cost += c1 == 0 ? 0 : c1 - 1;
+
+    return cost;
+  }
+
+  private static double getDirectionChangeCost(BlockNodeClass node) {
+    BlockNodeClass bp = node;
+    double cost = 0;
+    if (node != null) {
+      cost = calcDirectionChange(bp);
+      double prevCost = cost;
+
+      int c = 0;
+      while (bp != null && calcDirectionChange(bp) == prevCost && c < 4) {
+        prevCost = calcDirectionChange(bp);
+        bp = bp.parentOfBlock;
+
+        cost += 1;
+
+        c++;
+      }
+    }
+
+    return cost;
+  }
+
+  private static double getPathWidthCost(BlockNodeClass node, BlockNodeClass parent) {
+    if (MathUtils.minusAbs(node.blockPos.getX(), parent.blockPos.getX()) > 1) {
+      int cost = 0;
+      for (BlockPos block : BlockUtils.getBlocksInRadius(0, 0, 5, BlockUtils.fromBPToVec(node.blockPos))) {
+        if (!BlockUtils.isWalkable(block)) {
+          cost++;
+        }
+      }
+
+      return (double) cost / 2;
+    }
+
+    int cost = 0;
+    for (BlockPos block : BlockUtils.getBlocksInRadius(5, 0, 0, BlockUtils.fromBPToVec(node.blockPos))) {
+      if (!BlockUtils.isWalkable(block)) {
+        cost++;
+      }
+    }
+
+    return (double) cost / 2;
+  }
+
+  public static double calculateFullCostDistance(BlockPos pos1, BlockPos startBlock, BlockPos finalBlock) {
+    return calculateGCostBlockPos(pos1, startBlock) + calculateHCostBlockPos(pos1, finalBlock);
+  }
+
+  public static double getFullCost(BlockPos pos1, BlockPos startBlock, BlockPos finalBlock) {
+    return (calculateGCostBlockPos(pos1, startBlock) + calculateHCostBlockPos(pos1, finalBlock));
+  }
+
+  public static double getActionCost(ActionTypes action) {
+    switch (action) {
+      case FALL:
+      case JUMP:
+        return 1;
+    }
+    return 0;
+  }
+
+  public static double getYawCost(BlockNodeClass node) {
+    Vec3 childVec = BlockUtils.getCenteredVec(BlockUtils.fromBPToVec(node.blockPos));
+    Vec3 parentVec = BlockUtils.getCenteredVec(BlockUtils.fromBPToVec(node.parentOfBlock.blockPos));
+
+    double yawDifference = Math.atan2(childVec.zCoord - parentVec.zCoord, childVec.xCoord - parentVec.xCoord);
+
+    double yawDegrees = Math.toDegrees(yawDifference);
+
+    if (yawDegrees > 180.0) {
+      yawDegrees -= 360.0;
+    } else if (yawDegrees < -180.0) {
+      yawDegrees += 360.0;
+    }
+
+    double yawCost = Math.abs(yawDegrees) / 360;
+
+    return yawCost;
+  }
+
+  public static double calculateSurroundingsDoubleCost(BlockPos block, int pathSize) {
+    Iterable<BlockPos> blocks = BlockPos.getAllInBox(block.add(-3, 1, -3), block.add(3, 4, 3));
+
+    return BlockUtils.amountNonAir(blocks); // + BlockUtils.amountNonAir(blocksV1);
+  }
+
+  public static double getBreakCost(BlockPos block) {
+    return BlockUtils.getBlockType(block).getBlockHardness(Dependencies.mc.theWorld, block) * 5;
+  }
+
+  public static double walkCost() {
+    return 1;
+  }
+}"
+
+PathFinderConfig.java:
+"package com.mit.features.pathfind.utils;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import net.minecraft.block.Block;
+import net.minecraft.util.BlockPos;
+
+@Getter
+@AllArgsConstructor
+public class PathFinderConfig {
+
+  public boolean isMine;
+  public boolean isSwim;
+  public boolean isWidePath;
+  public boolean walkableBlocks;
+  public boolean isInNonRenderedChunks;
+
+  public int widePathWidth;
+  public int maxIterations;
+  public int maxPathSize;
+
+  public BlockPos startingBlock;
+  public BlockPos destinationBlock;
+
+  public Block[] availableBlockTypes;
+  public Block[] mineableBlocks;
+
+  public int maxHeight;
+  public int maxDepth;
+}"
+
+Utils.java:
+"package com.mit.features.pathfind.utils;
+
+import com.mit.features.render.RenderMultipleBlocksMod;
+import com.mit.features.render.RenderMultipleLines;
+import com.mit.features.render.RenderPoints;
+import com.mit.util.BlockUtils;
+import com.mit.util.MathUtils;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.Tuple;
+import net.minecraft.util.Vec3;
+
+public class Utils extends Costs {
+
+  public static BlockNodeClass getClassOfStarting(BlockPos startingBlock, BlockPos endBlock) {
+    return new BlockNodeClass(
+      null,
+      startingBlock,
+      calculateGCostBlockPos(startingBlock, startingBlock),
+      calculateHCostBlockPos(startingBlock, endBlock),
+      getFullCost(startingBlock, startingBlock, endBlock),
+      null,
+      new HashSet<>()
+    );
+  }
+
+  public static BlockNodeClass getClassOfEnding(BlockPos startingBlock, BlockPos endBlock) {
+    return new BlockNodeClass(
+      null,
+      endBlock,
+      calculateGCostBlockPos(startingBlock, endBlock),
+      calculateHCostBlockPos(endBlock, endBlock),
+      getFullCost(endBlock, startingBlock, endBlock),
+      null,
+      new HashSet<>()
+    );
+  }
+
+  public static BlockNodeClass getClassOfBlock(
+    BlockPos block,
+    BlockNodeClass parent,
+    BlockPos starting,
+    BlockPos ending,
+    HashSet<BlockPos> addBroken
+  ) {
+    addBroken.addAll(parent.broken);
+
+    return new BlockNodeClass(
+      parent,
+      block,
+      calculateGCostBlockPos(block, starting),
+      calculateHCostBlockPos(block, ending),
+      getFullCost(block, starting, ending),
+      null,
+      addBroken
+    );
+  }
+
+  public static List<BlockNodeClass> getBlocksAround(BlockNodeClass reference, BlockPos start, BlockPos end) {
+    List<BlockNodeClass> returnBlocks = new ArrayList<>();
+
+    for (int x = -1; x <= 1; x++) {
+      for (int y = -1; y <= 1; y++) {
+        for (int z = -1; z <= 1; z++) {
+          BlockPos curBlock = reference.blockPos.add(x, y, z);
+          returnBlocks.add(getClassOfBlock(curBlock, reference, start, end, reference.broken));
+        }
+      }
+    }
+
+    return returnBlocks;
+  }
+
+  public static List<BlockNodeClass> retracePath(BlockNodeClass startNode, BlockNodeClass endNode) {
+    List<BlockPos> blockPath = new ArrayList<BlockPos>();
+    List<BlockNodeClass> nodeClass = new ArrayList<>();
+    BlockNodeClass currentNode = endNode;
+
+    while (currentNode.parentOfBlock != null && !currentNode.equals(startNode)) {
+      blockPath.add(currentNode.blockPos());
+      nodeClass.add(currentNode);
+      currentNode = currentNode.parentOfBlock;
+    }
+
+    return reverseList(nodeClass);
+  }
+
+  public static List<BlockNodeClass> reverseList(List<BlockNodeClass> initList) {
+    int len = initList.size();
+    if (len == 0) return null;
+
+    int len2 = len >> 1;
+    BlockNodeClass temp;
+
+    for (int i = 0; i < len2; ++i) {
+      temp = initList.get(i);
+      initList.set(i, initList.get(initList.size() - i - 1));
+      initList.set(initList.size() - i - 1, temp);
+    }
+
+    return initList;
+  }
+
+  public static ReturnClass isAbleToInteract(BlockNodeClass node) {
+    if (canWalkOn(node)) return new ReturnClass(new ArrayList<>(), ActionTypes.WALK);
+
+    if (canJumpOn(node)) return new ReturnClass(new ArrayList<>(), ActionTypes.JUMP);
+
+    if (canFall(node)) return new ReturnClass(new ArrayList<>(), ActionTypes.FALL);
+
+    return null;
+  }
+
+  @Getter
+  @AllArgsConstructor
+  public static class ReturnClass {
+
+    public List<BlockPos> blocksToBreak;
+    public ActionTypes actionType;
+  }
+
+  public static boolean canWalkOn(BlockNodeClass node) {
+    BlockPos block = node.blockPos;
+    BlockNodeClass parent = node.parentOfBlock;
+
+    double yDif = Math.abs(parent.blockPos.getY() - block.getY());
+
+    BlockPos blockAbove1 = block.add(0, 1, 0);
+    BlockPos blockBelow1 = block.add(0, -1, 0);
+
+    if (
+      yDif <= 0.001 &&
+      !BlockUtils.isBlockSolid(blockAbove1) &&
+      BlockUtils.isBlockSolid(blockBelow1) &&
+      BlockUtils.isBlockWalkable(block)
+    ) {
+      if (MathUtils.distanceFromToXZ(block, parent.blockPos) <= 1) {
+        return true;
+      }
+
+      return node.isClearOnSides();
+    }
+
+    return false;
+  }
+
+  public static boolean canJumpOn(BlockNodeClass node) {
+    BlockPos block = node.blockPos;
+    BlockNodeClass parentBlock = node.parentOfBlock;
+    double yDiff = block.getY() - parentBlock.blockPos.getY();
+
+    BlockPos blockAbove1 = block.add(0, 1, 0);
+    BlockPos blockBelow1 = block.add(0, -1, 0);
+
+    BlockPos blockAboveOneParent = parentBlock.blockPos.add(0, 1, 0);
+    BlockPos blockAboveTwoParent = parentBlock.blockPos.add(0, 2, 0);
+
+    if (
+      yDiff == 1 &&
+      BlockUtils.isBlockSolid(blockBelow1) &&
+      !BlockUtils.isBlockSolid(blockAbove1) &&
+      !BlockUtils.isBlockSolid(blockAboveOneParent) &&
+      !BlockUtils.isBlockSolid(blockAboveTwoParent) &&
+      BlockUtils.isBlockWalkable(block)
+    ) {
+      if (MathUtils.distanceFromToXZ(block, parentBlock.blockPos) <= 1) {
+        return true;
+      }
+
+      return node.isClearOnSides();
+    }
+
+    return false;
+  }
+
+  public static boolean canFall(BlockNodeClass node) {
+    BlockPos block = node.blockPos;
+    BlockNodeClass parentBlock = node.parentOfBlock;
+
+    double yDiff = block.getY() - parentBlock.blockPos.getY();
+
+    BlockPos blockBelow1 = block.add(0, -1, 0);
+    BlockPos blockAbove1 = block.add(0, 1, 0);
+
+    if (
+      (yDiff < 0 && yDiff > -4 && BlockUtils.isBlockSolid(blockBelow1) && !BlockUtils.isBlockSolid(blockAbove1)) &&
+      BlockUtils.isBlockWalkable(block)
+    ) {
+      if (MathUtils.distanceFromToXZ(block, parentBlock.blockPos) <= 1) {
+        return true;
+      }
+
+      return node.isClearOnSides();
+    }
+
+    return false;
+  }
+
+  public static boolean isAllClearToY(int y1, int y2, BlockPos block) {
+    boolean isGreater = y1 < y2;
+    int rem = 0;
+
+    while (y1 != y2) {
+      BlockPos curBlock = block.add(0, rem, 0);
+
+      if (!BlockUtils.isBlockSolid(curBlock)) return false;
+      y2--;
+      rem--;
+    }
+
+    return true;
+  }
+
+  public static boolean isSameBlock(BlockNodeClass block1, BlockNodeClass block2) {
+    return block1.blockPos.equals(block2.blockPos);
+  }
+}"
+
+WalkerMain.java:
+"package com.mit.features.pathfind.walker;
+
+import com.mit.event.MsEvent;
+import com.mit.global.Dependencies;
+import com.mit.util.*;
+import java.util.*;
+import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
+
+public class WalkerMain {
+
+  boolean state = false;
+  List<Vec3> curPath = new ArrayList<>();
+  Vec3 curVec = null;
+  Vec3 prev = null;
+  double distToShift = 0;
+  boolean isShift;
+  Vec3 endBlock;
+  boolean isShifting = false;
+
+  Map<KeyBinding, Boolean> prevKeybinds = new HashMap<>();
+  List<KeyBinding> prevPressedKeybinds = new ArrayList<>();
+
+  public void run(List<Vec3> path, boolean walkState) {
+    MinecraftForge.EVENT_BUS.register(this);
+    state = walkState;
+    curPath = path;
+    curVec = BlockUtils.getCenteredVec(path.get(0));
+    path.remove(0);
+    prev = null;
+  }
+
+  public void run(List<Vec3> path, boolean walkState, boolean isShiftClose, double distToToShift) {
+    MinecraftForge.EVENT_BUS.register(this);
+    state = walkState;
+    curPath = path;
+
+    this.endBlock = path.get(path.size() - 1);
+
+    curVec = BlockUtils.getCenteredVec(path.get(0));
+    path.remove(0);
+    prev = null;
+
+    this.distToShift = distToToShift;
+    isShift = isShiftClose;
+  }
+
+  @SubscribeEvent
+  public void onTick(TickEvent.ClientTickEvent event) {
+    if (!state) return;
+
+    double curDist = MathUtils.distanceFromToXZ(
+      Dependencies.mc.thePlayer.getPositionVector(),
+      curVec.addVector(0.5, 0, 0.5)
+    );
+    if (curDist < 1 && (Math.round(Dependencies.mc.thePlayer.posY) == curVec.yCoord)) {
+      nextBlock();
+      return;
+    }
+
+    if (!Dependencies.mc.thePlayer.onGround) {
+      if (!this.curPath.isEmpty()) {
+        List<Vec3> pathTMP = new ArrayList<>(this.curPath);
+        pathTMP.add(this.curVec);
+
+        Vec3 newClosest = BlockUtils.getClosest(pathTMP, Dependencies.mc.thePlayer.getPositionVector());
+
+        if (newClosest == null || !newClosest.equals(this.curVec)) {
+          removeUntil(newClosest);
+          this.curVec = newClosest;
+        }
+      }
+    }
+
+    RotationUtils.Rotation needed = RotationUtils.getRotation(curVec.addVector(0.5, 0, 0.5));
+    needed.pitch = 0.0F;
+
+    if (Dependencies.mc.thePlayer.onGround) {
+      RotationUtils.smoothLook(needed, 300);
+    }
+
+    HashSet<KeyBinding> neededKeyPresses = VecUtils.getNeededKeyPressesHash(
+      Dependencies.mc.thePlayer.getPositionVector(),
+      this.curVec
+    );
+
+    for (KeyBinding k : KeyBindHandler.getListKeybinds()) {
+      KeyBinding.setKeyBindState(k.getKeyCode(), neededKeyPresses.contains(k));
+    }
+
+    Dependencies.mc.thePlayer.setSprinting(true);
+
+    KeyBindHandler.setKeyBindState(Dependencies.mc.gameSettings.keyBindJump, isCloseToJump());
+
+    if (this.isShift) {
+      isShifting =
+        MathUtils.distanceFromTo(Dependencies.mc.thePlayer.getPositionVector(), endBlock) < this.distToShift &&
+        Dependencies.mc.thePlayer.getPositionVector().yCoord == this.curVec.yCoord;
+    }
+
+    KeyBindHandler.setKeyBindState(Dependencies.mc.gameSettings.keyBindSneak, isShifting);
+  }
+
+  void nextBlock() {
+    if (curPath == null || curPath.isEmpty()) {
+      stop();
+      return;
+    }
+
+    prev = curVec;
+    curVec = BlockUtils.getCenteredVec(curPath.remove(0));
+  }
+
+  boolean isCloseToJump() {
+    if (prev != null) {
+      BlockUtils.getBlockType(BlockUtils.fromVecToBP(prev.addVector(0, -1, 0))).getRegistryName();
+    }
+
+    return (
+      Dependencies.mc.thePlayer.posY + 0.5 < curVec.yCoord &&
+      !BlockUtils.getBlockType(BlockUtils.fromVecToBP(curVec.addVector(0, -1, 0))).getRegistryName().contains("slab") &&
+      Dependencies.mc.thePlayer.onGround &&
+      MathUtils.distanceFromToXZ(Dependencies.mc.thePlayer.getPositionVector(), curVec) < 5
+    );
+  }
+
+  void removeUntil(Vec3 vec) {
+    while (!this.curPath.isEmpty()) {
+      if (this.curPath.get(0).equals(vec)) return;
+      this.curPath.remove(0);
+    }
+  }
+
+  public void pause() {
+    prevKeybinds.put(KeyBindHandler.keybindA, KeyBindHandler.keybindA.isKeyDown());
+    prevKeybinds.put(KeyBindHandler.keybindD, KeyBindHandler.keybindD.isKeyDown());
+    prevKeybinds.put(KeyBindHandler.keybindS, KeyBindHandler.keybindS.isKeyDown());
+    prevKeybinds.put(KeyBindHandler.keybindW, KeyBindHandler.keybindW.isKeyDown());
+
+    prevKeybinds.put(KeyBindHandler.keyBindJump, KeyBindHandler.keyBindJump.isKeyDown());
+    prevKeybinds.put(KeyBindHandler.keyBindShift, KeyBindHandler.keyBindShift.isKeyDown());
+
+    KeyBindHandler.resetKeybindState();
+    this.state = false;
+  }
+
+  public void unpause() {
+    prevKeybinds.forEach(KeyBindHandler::setKeyBindState);
+    this.state = true;
+  }
+
+  void stop() {
+    KeyBindHandler.resetKeybindState();
+    this.state = false;
+    this.curPath = null;
+    MinecraftForge.EVENT_BUS.unregister(this);
+  }
+
+  public boolean isDone() {
+    return curPath == null;
+  }
+}"

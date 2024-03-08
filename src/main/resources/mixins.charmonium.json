@@ -1,0 +1,41 @@
+{
+  "package": "com.mylk.charmonium.mixin",
+  "refmap": "mixins.${modid}.refmap.json",
+  "minVersion": "0.7",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "block.IBlockAccessor",
+    "block.MixinBlockCocoa",
+    "block.MixinBlockCrops",
+    "block.MixinBlockMushroom",
+    "block.MixinBlockNetherWart",
+    "block.MixinGlassPane",
+    "client.MixinChunk",
+    "client.MixinMouse",
+    "fml.MixinFMLHandshakeMessage",
+    "network.MixinNetworkManager"
+  ],
+  "client": [
+    "block.RenderGlobalAccessor",
+    "client.EntityPlayerSPAccessor",
+    "client.MinecraftAccessor",
+    "client.MixinEntityPlayerSP",
+    "client.MixinKeyBinding",
+    "client.MixinMinecraft",
+    "client.MixinPlayerControllerMP",
+    "client.PlayerControllerMPAccessor",
+    "client.MixinSoundManager",
+    "gui.IGuiPlayerTabOverlayAccessor",
+    "gui.MixinGuiContainer",
+    "gui.MixinGuiEditSign",
+    "gui.MixinGuiMultiplayer",
+    "network.MixinNetHandlerPlayClient",
+    "render.MixinActiveRenderInfo",
+    "render.MixinEffectRenderer",
+    "render.MixinEntityRenderer",
+    "render.MixinModelBiped",
+    "render.MixinRendererLivingEntity",
+    "render.MixinRenderManager",
+    "render.RenderManagerAccessor"
+  ]
+}
