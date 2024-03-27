@@ -69,8 +69,8 @@ public class routes {
                     new AOTVWaypointsStructs.Waypoint("23", -145, 75, -65),
                     new AOTVWaypointsStructs.Waypoint("28", -133, 72, -51),
                     new AOTVWaypointsStructs.Waypoint("24", -135, 72, -47),
-                    new AOTVWaypointsStructs.Waypoint("25", -125, 72, -48),
-                    new AOTVWaypointsStructs.Waypoint("26", -116, 73, -43),
+                    new AOTVWaypointsStructs.Waypoint("25", -125, 72, -49),
+                    new AOTVWaypointsStructs.Waypoint("26", -115, 73, -45),
                     new AOTVWaypointsStructs.Waypoint("27", -116, 73, -37)
             )
     );

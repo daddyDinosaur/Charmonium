@@ -101,8 +101,8 @@ public class PlayerUtils {
                             return i - 36;
                         }
                         continue;
-                    case MITHRIL_MINER:
-                        if (mc.thePlayer.inventoryContainer.inventorySlots.get(i).getStack().getDisplayName().contains(Config.getCommTool())) {
+                    case SLAYER_AURA:
+                        if (mc.thePlayer.inventoryContainer.inventorySlots.get(i).getStack().getDisplayName().contains(Config.slayerAuraWeaponName)) {
                             return i - 36;
                         }
                         continue;

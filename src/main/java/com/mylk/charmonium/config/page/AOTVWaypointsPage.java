@@ -8,6 +8,7 @@ import cc.polyfrost.oneconfig.renderer.font.Fonts;
 import cc.polyfrost.oneconfig.utils.InputHandler;
 import cc.polyfrost.oneconfig.utils.Notifications;
 import cc.polyfrost.oneconfig.utils.color.ColorPalette;
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -30,10 +31,7 @@ import java.awt.datatransfer.StringSelection;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class AOTVWaypointsPage extends Page {
@@ -46,10 +44,16 @@ public class AOTVWaypointsPage extends Page {
     private static final CopyOnWriteArrayList<Route> routes = new CopyOnWriteArrayList<>();
     private final BasicButton addNewList = new BasicButton(120, BasicButton.SIZE_36, "Add New List", null, null, BasicButton.ALIGNMENT_CENTER, ColorPalette.PRIMARY);
     private final BasicButton importList = new BasicButton(120, BasicButton.SIZE_36, "Import List", null, null, BasicButton.ALIGNMENT_CENTER, ColorPalette.PRIMARY);
+    private final BasicButton save = new BasicButton(120, BasicButton.SIZE_36, "Save Config", null, null, BasicButton.ALIGNMENT_CENTER, ColorPalette.PRIMARY);
 
 
     public AOTVWaypointsPage() {
         super("AOTV Waypoints");
+        save.setClickAction(() -> {
+            AOTVWaypointsStructs.SaveWaypoints();
+            Notifications.INSTANCE.send("Charmonium", "Saved successfully!");
+            redrawRoutes();
+        });
         addNewList.setClickAction(() -> {
             if (Charmonium.aotvWaypoints == null || Charmonium.aotvWaypoints.getRoutes() == null) return;
 
@@ -72,7 +76,27 @@ public class AOTVWaypointsPage extends Page {
                         Notifications.INSTANCE.send("Charmonium", "Imported route " + list.name + " from Charmonium successfully!");
                         redrawRoutes();
                     }
-                } else if (data.startsWith("<Skytils-Waypoint-Data>(V")) {
+                } else if (data.startsWith("[{") && data.endsWith("}]")) {
+                    Gson gson = new Gson();
+                    JsonArray jsonArray = gson.fromJson(data, JsonArray.class);
+
+                    AOTVWaypointsStructs.WaypointList list = new AOTVWaypointsStructs.WaypointList("CustomWaypoints", false, false, new ArrayList<>());
+
+                    for (int i = 0; i < jsonArray.size(); i++) {
+                        JsonObject waypointObj = jsonArray.get(i).getAsJsonObject();
+                        int x = waypointObj.get("x").getAsInt();
+                        int y = waypointObj.get("y").getAsInt();
+                        int z = waypointObj.get("z").getAsInt();
+                        int name = waypointObj.get("options").getAsJsonObject().get("name").getAsInt();
+                        list.waypoints.add(new AOTVWaypointsStructs.Waypoint(String.valueOf(name), x, y, z));
+                    }
+
+                    list.waypoints.sort(Comparator.comparingInt(w -> Integer.parseInt(w.name)));
+
+                    Charmonium.aotvWaypoints.getRoutes().add(list);
+                    Notifications.INSTANCE.send("Charmonium", "Imported route " + list.name + " successfully!");
+                    redrawRoutes();
+                }else if (data.startsWith("<Skytils-Waypoint-Data>(V")) {
                     data = data.replace("<Skytils-Waypoint-Data>(V", "");
                     data = data.replace(data.substring(0, data.indexOf(")") + 2), "");
                     System.out.println(data);
@@ -160,6 +184,7 @@ public class AOTVWaypointsPage extends Page {
                 });
                 e.printStackTrace();
             }
+            AOTVWaypointsStructs.SaveWaypoints();
         });
         redrawRoutes();
     }
@@ -167,7 +192,7 @@ public class AOTVWaypointsPage extends Page {
     public static void redrawRoutes() {
         routes.clear();
         System.out.println("Redraw");
-        if (Charmonium.aotvWaypoints == null || Charmonium.aotvWaypoints.getRoutes().size() == 0) return;
+        if (Charmonium.aotvWaypoints == null || Charmonium.aotvWaypoints.getRoutes().isEmpty()) return;
 
         textInputFields.clear();
         nameInputFields.clear();
@@ -353,6 +378,7 @@ public class AOTVWaypointsPage extends Page {
     public int drawStatic(long vg, int x, int y, InputHandler inputHandler) {
         addNewList.draw(vg, x + 8, y + 8, inputHandler);
         importList.draw(vg, x + 8 + 200 + 8, y + 8, inputHandler);
+        save.draw(vg, x + 8 + 200 + 200 + 8, y + 8, inputHandler);
         return addNewList.getHeight() + 16;
     }
 

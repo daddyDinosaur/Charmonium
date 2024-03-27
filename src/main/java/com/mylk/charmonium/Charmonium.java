@@ -1,17 +1,13 @@
 package com.mylk.charmonium;
 
 import baritone.api.BaritoneAPI;
-import cc.polyfrost.oneconfig.utils.Multithreading;
 import cc.polyfrost.oneconfig.utils.Notifications;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import com.mylk.charmonium.command.Commands;
 import com.mylk.charmonium.config.Config;
 import com.mylk.charmonium.config.aotv.AOTVWaypoints;
 import com.mylk.charmonium.config.aotv.AOTVWaypointsStructs;
-import com.mylk.charmonium.config.struct.DiscordWebhook;
 import com.mylk.charmonium.event.MillisecondEvent;
 import com.mylk.charmonium.failsafe.FailsafeManager;
 import com.mylk.charmonium.feature.FeatureManager;
@@ -28,7 +24,6 @@ import com.mylk.charmonium.util.FailsafeUtils;
 import com.mylk.charmonium.util.LogUtils;
 import com.mylk.charmonium.util.ReflectionUtils;
 import com.mylk.charmonium.util.RenderUtils;
-import com.mylk.charmonium.util.charHelpers.GemstoneUtils;
 import com.mylk.charmonium.util.charHelpers.pathingRotations;
 import com.mylk.charmonium.util.helper.AudioManager;
 import com.mylk.charmonium.util.helper.BaritoneEventListener;
@@ -37,7 +32,6 @@ import com.mylk.charmonium.util.helper.TickTask;
 import net.minecraft.client.Minecraft;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.Tuple;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.common.MinecraftForge;
@@ -58,9 +52,6 @@ import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.sql.Driver;
 
 @Mod(modid = "charmonium", useMetadata = true)
@@ -208,7 +199,7 @@ public class Charmonium {
         MinecraftForge.EVENT_BUS.register(pathingRotations.getInstance());
         MinecraftForge.EVENT_BUS.register(ForagingMacro.getInstance());
         MinecraftForge.EVENT_BUS.register(IceWalkerMacro.getInstance());
-        MinecraftForge.EVENT_BUS.register(MithrilMacro.getInstance());
+        MinecraftForge.EVENT_BUS.register(SlayerAura.getInstance());
         MinecraftForge.EVENT_BUS.register(GemstoneMacro.getInstance());
         MinecraftForge.EVENT_BUS.register(SlayerMacro.getInstance());
         MinecraftForge.EVENT_BUS.register(slayerHandler.getInstance());

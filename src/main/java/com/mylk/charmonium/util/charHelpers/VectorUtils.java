@@ -212,6 +212,7 @@ public class VectorUtils {
         return null;
     }
 
+
     public static Vec3 getClosestHittableToNextBlock(BlockPos currentBlock, BlockPos nextBlock) {
         Vec3 goal = new Vec3(nextBlock.getX() + 0.5, nextBlock.getY() + 0.5, nextBlock.getZ() + 0.5);
         double bestDist = Double.MAX_VALUE;
@@ -297,7 +298,7 @@ public class VectorUtils {
                 }
             }
         }
-        return (vecs.size() == 0) ? null : vecs.get(MathUtils.random.nextInt(vecs.size()));
+        return (vecs.isEmpty()) ? null : vecs.get(MathUtils.random.nextInt(vecs.size()));
     }
 
     public static Vec3 getRandomHittable(final BlockPos pos, final AxisAlignedBB aabb) {

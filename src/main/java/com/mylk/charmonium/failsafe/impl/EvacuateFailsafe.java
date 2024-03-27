@@ -83,7 +83,7 @@ public class EvacuateFailsafe extends Failsafe {
                     evacuateState = EvacuateState.END;
                     FailsafeManager.getInstance().scheduleRandomDelay(500, 1000);
                 } else {
-                    if (GameStateHandler.getInstance().getLocation() == GameStateHandler.Location.HUB) {
+                    if (GameStateHandler.getInstance().getLocation() == GameStateHandler.Location.HUB || GameStateHandler.getInstance().getLocation() == GameStateHandler.Location.PRIVATE_ISLAND) {
                         mc.thePlayer.sendChatMessage(GameStateHandler.getInstance().islandWarp);
                         FailsafeManager.getInstance().scheduleRandomDelay(2500, 2000);
                     } else {

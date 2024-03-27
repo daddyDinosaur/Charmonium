@@ -37,14 +37,14 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     private transient static final String DEBUG = "Debug";
     private transient static final String EXPERIMENTAL = "Experimental";
     private transient static final String MOB_MACROS = "Mob Killer Macros";
-    private transient static final String MITHRIL_MACRO = "Mithril Macro";
+    private transient static final String AURA_MACRO = "Slayer Aura";
     private transient static final String SLAYER_MACRO = "Slayer Macro";
     private transient static final String FISHING_MACRO = "Fishing Macro";
     private transient static final String GEMSTONE_MACRO = "Gemstone Macro";
 
     //<editor-fold desc="GENERAL">
     public enum MacroEnum {
-        NONE, FORAGING, ICE_WALKER, MITHRIL_MINER, SLAYER, FISHING, GEMSTONE
+        NONE, FORAGING, ICE_WALKER, SLAYER_AURA, SLAYER, FISHING, GEMSTONE
     }
 
     public enum FailsafeException {
@@ -59,7 +59,7 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
                     "None", // 0
                     "Foraging", // 1
                     "Ice Walker", // 2
-                    "Mithril Miner", // 3
+                    "Slayer Aura", // 3
                     "Slayers", // 4
                     "Fishing", // 5
                     "Gemstone", // 6
@@ -74,7 +74,7 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     public static Set<FailsafeException> getFailsafeExceptions() {
         Set<FailsafeException> exceptions = new HashSet<>();
 
-        if (getMacro() == MacroEnum.SLAYER || getMacro() == MacroEnum.MITHRIL_MINER) {
+        if (getMacro() == MacroEnum.SLAYER || getMacro() == MacroEnum.SLAYER_AURA) {
             exceptions.add(FailsafeException.BEDROCK_CAGE_CHECK);
         }
 
@@ -118,40 +118,6 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
             }
     )
     public static int SAttackType = 0;
-
-    @Dropdown(
-            name = "Mithril Location",
-            description = "Where you wanna mine", category = GENERAL, subcategory = MITHRIL_MACRO,
-            options = {
-                    "A", // 0
-                    "B", // 1
-            }
-    )
-    public static int SMSpotType = 0;
-
-    @Dropdown(
-            name = "Mithril Tool", category = GENERAL, subcategory = MITHRIL_MACRO,
-            options = {
-                    "Gemstone Gauntlet", // 0
-                    "Titanium Drill", // 1
-                    "Pickaxe", // 2
-                    "Pickonimbus" // 3
-            }
-    )
-    public static int commTool = 0;
-
-    public static String getCommTool() {
-        switch (commTool) {
-            case 0:
-                return "Gemstone Gauntlet";
-            case 1:
-                return "Titanium Drill";
-            case 3:
-                return "Pickonimbus";
-            default:
-                return "Pickaxe";
-        }
-    }
 
     @Text(name = "Slayer Weapon", placeholder = "Type your weapon name here", category = GENERAL, subcategory = SLAYER_MACRO)
     public static String slayerWeaponName = null;
@@ -197,29 +163,6 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     @Switch(name = "Use Warps", category = GENERAL, subcategory = SLAYER_MACRO)
     public static boolean useWarps = false;
 
-    @Switch(name = "Auto Heal", category = GENERAL, subcategory = SLAYER_MACRO)
-    public static boolean autoHeal = false;
-
-    @Dropdown(
-            name = "Healing Tool", category = GENERAL, subcategory = SLAYER_MACRO,
-            options = {
-                    "Wand of ...", // 0
-                    "Zombie Sword" // 1
-            }
-    )
-    public static int healingItem = 0;
-
-    public static String getHealingItem() {
-        switch (commTool) {
-            case 0:
-                return "Wand of";
-            case 1:
-                return "Zombie Sword";
-            default:
-                return "Wand of";
-        }
-    }
-
     @Slider(
             name = "Sea Creature Range", category = GENERAL, subcategory = FISHING_MACRO,
             min = 0, max = 12, step = 1
@@ -251,6 +194,9 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
             subcategory = GEMSTONE_MACRO
     )
     public AOTVWaypointsPage aotvWaypointsPage = new AOTVWaypointsPage();
+
+    @Switch(name = "Highlight Blocks", category = GENERAL, subcategory = GEMSTONE_MACRO)
+    public static boolean highlightGemBlocks = true;
 
     @Switch(name = "Render Waypoints", category = GENERAL, subcategory = GEMSTONE_MACRO)
     public static boolean aotvHighlightRouteBlocks = false;
@@ -300,11 +246,11 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     )
     public static int gemstoneStuckDelay = 2000;
 
-//    @Slider(
-//            name = "Ping Glide", category = GENERAL, subcategory = GEMSTONE_MACRO,
-//            min = 0, max = 90, step = 5
-//    )
-//    public static int pingGlide = 85;
+    @Slider(
+            name = "Ping Glide", description = "Set to 0 to disable", category = GENERAL, subcategory = GEMSTONE_MACRO,
+            min = 0, max = 90, step = 1
+    )
+    public static int pingGlide = 8;
 
     @Dropdown(name = "Type of glass to mine", category = GENERAL, subcategory = GEMSTONE_MACRO, options = {"Ruby", "Amethyst", "Topaz", "Sapphire", "Amber", "Jade", "Jasper", "All"})
     public static int glassFilter = 0;
@@ -329,6 +275,58 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
                 return new EnumDyeColor[]{EnumDyeColor.BLACK};
             default:
                 return null;
+        }
+    }
+
+    public enum SA_AttackEnum {
+        LEFT_CLICK,
+        RANGED
+    }
+    @Dropdown(
+            name = "Attack mode",
+            description = "Select attack type", category = GENERAL, subcategory = AURA_MACRO,
+            options = {
+                    "Left Click", // 0
+                    "Right Click", // 1
+            }
+    )
+    public static int SA_AttackType = 0;
+
+    @Text(name = "Slayer Aura Weapon", placeholder = "Type your weapon name here", category = GENERAL, subcategory = AURA_MACRO)
+    public static String slayerAuraWeaponName = null;
+
+    @Switch(
+            name = "Shift while killing", category = GENERAL, subcategory = AURA_MACRO,
+            size = 2
+    )
+    public static boolean shiftAuraKill = false;
+
+    @Slider(
+            name = "Attack Delay", category = GENERAL, subcategory = AURA_MACRO,
+            min = 50, max = 1000, step = 25
+    )
+    public static int SA_AttackDelay = 125;
+
+    @Dropdown(
+            name = "Boss Type",
+            category = GENERAL,
+            subcategory = AURA_MACRO,
+            options = {"Revenant", "Broodfather", "Sven", "Voidgloom"}
+    )
+    public static int SlayerAuraType = 0;
+
+    public static int getSlayerAuraType() {
+        switch (SlayerAuraType) {
+            case 0:
+                return 0;
+            case 1:
+                return 1;
+            case 2:
+                return 2;
+            case 3:
+                return 3;
+            default:
+                return 0;
         }
     }
 
@@ -1123,7 +1121,6 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
         this.addDependency("customPitchLevel", "customPitch");
         this.addDependency("customYawLevel", "customYaw");
 
-        this.hideIf("healingItem", () -> !autoHeal);
         this.hideIf("autoHeal", () -> getMacro() != MacroEnum.SLAYER);
         this.hideIf("slayerWeaponName", () -> getMacro() != MacroEnum.SLAYER);
         this.hideIf("autoMaddox", () -> getMacro() != MacroEnum.SLAYER);
@@ -1131,8 +1128,11 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
         this.hideIf("SlayerTier", () -> getMacro() != MacroEnum.SLAYER);
         this.hideIf("useWarps", () -> getMacro() != MacroEnum.SLAYER);
 
-        this.hideIf("commTool", () -> getMacro() != MacroEnum.MITHRIL_MINER);
-        this.hideIf("SMSpotType", () -> getMacro() != MacroEnum.MITHRIL_MINER);
+        this.hideIf("SA_AttackType", () -> getMacro() != MacroEnum.SLAYER_AURA);
+        this.hideIf("slayerAuraWeaponName", () -> getMacro() != MacroEnum.SLAYER_AURA);
+        this.hideIf("shiftAuraKill", () -> getMacro() != MacroEnum.SLAYER_AURA);
+        this.hideIf("SA_AttackDelay", () -> getMacro() != MacroEnum.SLAYER_AURA);
+        this.hideIf("SlayerAuraType", () -> getMacro() != MacroEnum.SLAYER_AURA);
 
         this.hideIf("glassPanesFullBlock", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("aotvWaypointsPage", () -> getMacro() != MacroEnum.GEMSTONE);
@@ -1146,6 +1146,10 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
         this.hideIf("blueCheeseOmeletteToggle", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("useMiningSpeedBoost", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("glassFilter", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("gemstoneStuckDelay", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("gemstoneTeleportDelay", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("gemstoneTeleportRotDelay", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("gemstoneRotationDelay", () -> getMacro() != MacroEnum.GEMSTONE);
 
         this.hideIf("scanRange", () -> !isAllowed("scanRange"));
         this.hideIf("shiftWhenKill", () -> !isAllowed("shiftWhenKill"));

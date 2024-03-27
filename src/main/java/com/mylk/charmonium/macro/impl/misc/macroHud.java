@@ -32,8 +32,8 @@ public class macroHud extends TextHud{
                 macroLines = ForagingMacro.drawInfo();
             } else if (MacroHandler.getInstance().getCrop() == Config.MacroEnum.ICE_WALKER) {
                 macroLines = IceWalkerMacro.drawInfo();
-            } else if (MacroHandler.getInstance().getCrop() == Config.MacroEnum.MITHRIL_MINER) {
-                macroLines = MithrilMacro.drawInfo();
+            } else if (MacroHandler.getInstance().getCrop() == Config.MacroEnum.SLAYER_AURA) {
+                macroLines = SlayerAura.drawInfo();
             } else if (MacroHandler.getInstance().getCrop() == Config.MacroEnum.SLAYER) {
                 macroLines = SlayerMacro.drawInfo();
             } else if (MacroHandler.getInstance().getCrop() == Config.MacroEnum.FISHING) {

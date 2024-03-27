@@ -21,28 +21,18 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.mylk.charmonium.Charmonium.mc;
 
 public class GemstoneUtils {
     public static List<BlockPos> possibleBreaks = new ArrayList<>();
     public static List<BlockPos> currentlyPossibleToSee = new ArrayList<>();
-    private static Vec3 destBlock1 = null;
-    private static BlockPos destBlock2 = null;
-    public static double paneCost = 1;
-    public static double fullBlockCost = 0.5;
     private static final RotationHandler rotation = RotationHandler.getInstance();
 
     public static void getAllBlocks() {
         int reach = (int) mc.playerController.getBlockReachDistance();
         possibleBreaks = getVeinAround(mc.thePlayer.getPosition(), reach, reach, reach);
-    }
-
-    public static long getMiningTimeBlock(BlockPos bp, double miningSpeed) {
-        double blockStrength = getHardnessBlock(mc.theWorld.getBlockState(bp)) * 30;
-        double speedSeconds = blockStrength / miningSpeed / 20;
-
-        return (long) (speedSeconds * 1000);
     }
 
     public static boolean isBlockColored(BlockPos pos, EnumDyeColor[] requiredColors) {
@@ -59,8 +49,6 @@ public class GemstoneUtils {
                 }
             }
         }
-
-        // Add more block checks here based on your requirements
 
         return false;
     }
@@ -152,28 +140,10 @@ public class GemstoneUtils {
         return new Vec3(dxP * radius, dyP * radius, dzP * radius);
     }
 
-    public static double getDistance(Vec3 a, Vec3 b) {
-        double dx = b.xCoord - a.xCoord;
-        double dy = b.yCoord - a.yCoord;
-        double dz = b.zCoord - a.zCoord;
-
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
-    }
-
     public static Vec3 getPossibleLocDefault(Vec3 block1, BlockPos destBlock, Block[] blocksToIgnore) {
         double playerHeight = 1.54;
 
-        destBlock1 = block1;
-        destBlock2 = destBlock;
-
         Vec3 destBlockCenter = new Vec3(destBlock.getX() + 0.5, destBlock.getY() + 0.5, destBlock.getZ() + 0.5);
-
-        //RenderOneBlockMod.renderOneBlock(destBlockCenter, true);
-
-        double distToBlockCenter = getDistance(
-                new Vec3(block1.xCoord, block1.yCoord + playerHeight, block1.zCoord),
-                destBlockCenter
-        );
 
         double radiusStep = 0.1;
         double radiusMax = Math.sqrt(3) / 2 + radiusStep;
@@ -214,33 +184,91 @@ public class GemstoneUtils {
 //        List<BlockPos> tmp = new ArrayList<>(possibleBreaks);
 //        tmp.removeIf(b ->
 //                broken.contains(b) ||
-//                !hasLineOfSight(b) ||
+//                        !isBlockColored(b, Config.getRequiredColors()) ||
 //                        BlockUtils.distanceFromTo(
-//                                BlockUtils.getCenteredVec(BlockUtils.fromBPToVec(b)),
-//                                BlockUtils
-//                                        .getCenteredVec(mc.thePlayer.getPositionVector())
+//                                BlockUtils.fromBPToVec(b),
+//                                mc.thePlayer.getPositionVector()
 //                                        .addVector(0, mc.thePlayer.eyeHeight, 0)) >= mc.playerController.getBlockReachDistance() ||
-//                        getPossibleLocDefault(mc.thePlayer.getPositionVector(), b, new Block[] { Blocks.air }) == null);
+//                        getPossibleLocDefault(mc.thePlayer.getPositionVector(), b, new Block[]{Blocks.air}) == null);
 //
-//        tmp.sort(Comparator.comparingDouble(b -> getCost(b, rotation.getRotation(BlockUtils.fromBPToVec(b).addVector(0.5, 0, 0.5)))));
-//        currentlyPossibleToSee = tmp;
+//        currentlyPossibleToSee = tmp.stream()
+//                .sorted(Comparator.comparingDouble(b -> getCost(rotation.getRotation(BlockUtils.fromBPToVec(b).addVector(0.5, 0, 0.5)))))
+//                .sorted(Comparator.comparingDouble(b -> mc.thePlayer.getPositionVector().squareDistanceTo(new Vec3(b.getX() + 0.5, b.getY() + 0.5, b.getZ() + 0.5))))
+//                .collect(Collectors.toList());
+//
+//        BlockPos bestBlock = currentlyPossibleToSee.isEmpty() ? null : currentlyPossibleToSee.get(0);
+//
+//        List<BlockPos> newlyVisibleBlocks = new ArrayList<>();
+//        for (BlockPos blockPos : tmp) {
+//            if (!hasAnyLineOfSight(blockPos) && hasAnyLineOfSight(bestBlock) && VectorUtils.getRandomHittable(blockPos) != null) {
+//                newlyVisibleBlocks.add(blockPos);
+//            }
+//        }
+//
+//        currentlyPossibleToSee.addAll(newlyVisibleBlocks);
+//
+//        currentlyPossibleToSee.sort(Comparator.comparingDouble(b -> {
+//            Rotation rotation = RotationHandler.getInstance().getRotation(BlockUtils.fromBPToVec((BlockPos)b).addVector(0.5, 0, 0.5));
+//            return getCost(rotation);
+//        }).thenComparingDouble(blockPos -> {
+//            if (bestBlock != null && blockPos instanceof BlockPos) {
+//                BlockPos nextBlock = (BlockPos) blockPos;
+//                Vec3 bestBlockCenter = new Vec3(bestBlock.getX() + 0.5, bestBlock.getY() + 0.5, bestBlock.getZ() + 0.5);
+//                Vec3 nextBlockCenter = new Vec3(nextBlock.getX() + 0.5, nextBlock.getY() + 0.5, nextBlock.getZ() + 0.5);
+//                return bestBlockCenter.squareDistanceTo(nextBlockCenter);
+//            }
+//            return 0;
+//        }));
 //    }
 
     public static void updateListData(HashSet<BlockPos> broken) {
         List<BlockPos> tmp = new ArrayList<>(possibleBreaks);
         tmp.removeIf(b ->
                 broken.contains(b) ||
-                        !hasLineOfSight(b) ||
-                        !isBlockColored(b, Config.getRequiredColors()) ||
-                        BlockUtils.distanceFromTo(
-                                BlockUtils.fromBPToVec(b),
-                                mc.thePlayer.getPositionVector()
-                                        .addVector(0, mc.thePlayer.eyeHeight, 0)) >= mc.playerController.getBlockReachDistance() ||
-                        getPossibleLocDefault(mc.thePlayer.getPositionVector(), b, new Block[] { Blocks.air }) == null);
+                !isBlockColored(b, Config.getRequiredColors()) ||
+                !hasAnyLineOfSight(b) ||
+                BlockUtils.distanceFromTo(
+                        BlockUtils.fromBPToVec(b),
+                        mc.thePlayer.getPositionVector()
+                                .addVector(0, mc.thePlayer.eyeHeight, 0)) >= mc.playerController.getBlockReachDistance() ||
+                getPossibleLocDefault(mc.thePlayer.getPositionVector(), b, new Block[] { Blocks.air }) == null);
 
-        tmp.sort(Comparator.comparingDouble(b -> getCost(rotation.getRotation(BlockUtils.fromBPToVec(b).addVector(0.5, 0, 0.5)))));
-        currentlyPossibleToSee = tmp;
+        currentlyPossibleToSee = tmp.stream()
+                .sorted(Comparator.comparingDouble(b -> getCost(rotation.getRotation(BlockUtils.fromBPToVec(b).addVector(0.5, 0, 0.5)))))
+                .sorted(Comparator.comparingDouble(b -> mc.thePlayer.getPositionVector().squareDistanceTo(new Vec3(b.getX() + 0.5, b.getY() + 0.5, b.getZ() + 0.5))))
+                .collect(Collectors.toList());
+
+        BlockPos bestBlock = currentlyPossibleToSee.isEmpty() ? null : currentlyPossibleToSee.get(0);
+
+        currentlyPossibleToSee.sort(Comparator.comparingDouble(b -> {
+            Rotation rotation = RotationHandler.getInstance().getRotation(BlockUtils.fromBPToVec((BlockPos)b).addVector(0.5, 0, 0.5));
+            return getCost(rotation);
+        }).thenComparingDouble(blockPos -> {
+            if (bestBlock != null && blockPos instanceof BlockPos) {
+                BlockPos nextBlock = (BlockPos) blockPos;
+                Vec3 bestBlockCenter = new Vec3(bestBlock.getX() + 0.5, bestBlock.getY() + 0.5, bestBlock.getZ() + 0.5);
+                Vec3 nextBlockCenter = new Vec3(nextBlock.getX() + 0.5, nextBlock.getY() + 0.5, nextBlock.getZ() + 0.5);
+                return bestBlockCenter.squareDistanceTo(nextBlockCenter);
+            }
+            return 0;
+        }));
     }
+
+//    public static void updateListData(HashSet<BlockPos> broken) {
+//        List<BlockPos> tmp = new ArrayList<>(possibleBreaks);
+//        tmp.removeIf(b ->
+//                broken.contains(b) ||
+//                !isBlockColored(b, Config.getRequiredColors()) ||
+//                !hasAnyLineOfSight(b) ||
+//                BlockUtils.distanceFromTo(
+//                        BlockUtils.fromBPToVec(b),
+//                        mc.thePlayer.getPositionVector()
+//                                .addVector(0, mc.thePlayer.eyeHeight, 0)) >= mc.playerController.getBlockReachDistance() ||
+//                getPossibleLocDefault(mc.thePlayer.getPositionVector(), b, new Block[] { Blocks.air }) == null);
+//
+//        tmp.sort(Comparator.comparingDouble(b -> getCost(rotation.getRotation(BlockUtils.fromBPToVec(b).addVector(0.5, 0, 0.5)))));
+//        currentlyPossibleToSee = tmp;
+//    }
 
     private static double getCost(Rotation neededRotation) {
         double cost = 0;
@@ -251,6 +279,37 @@ public class GemstoneUtils {
         return cost;
     }
 
+    public static boolean hasAnyLineOfSight(BlockPos blockPos) {
+        EntityPlayerSP player = mc.thePlayer;
+
+        if (player == null) {
+            return false;
+        }
+
+        Vec3 playerEyes = new Vec3(player.posX, player.posY + player.getEyeHeight(), player.posZ);
+        double offsetX = blockPos.getX() + 0.5 - player.posX;
+        double offsetY = blockPos.getY() + 0.5 - (player.posY + player.getEyeHeight());
+        double offsetZ = blockPos.getZ() + 0.5 - player.posZ;
+        double blockHalfSize = 0.5;
+        double buffer = 0.125;
+        double[] edgeOffsets = {-blockHalfSize + buffer, 0, blockHalfSize - buffer};
+
+        for (double edgeOffsetX : edgeOffsets) {
+            for (double edgeOffsetY : edgeOffsets) {
+                for (double edgeOffsetZ : edgeOffsets) {
+                    Vec3 toBlock = new Vec3(edgeOffsetX, edgeOffsetY, edgeOffsetZ).addVector(offsetX, offsetY, offsetZ);
+                    MovingObjectPosition result = mc.theWorld.rayTraceBlocks(playerEyes, playerEyes.add(toBlock), false, true, false);
+                    if (result != null && result.getBlockPos().equals(blockPos)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+
     public static boolean hasLineOfSight(BlockPos blockPos) {
         EntityPlayerSP player = mc.thePlayer;
 
@@ -260,26 +319,13 @@ public class GemstoneUtils {
 
         Vec3 playerEyes = new Vec3(player.posX, player.posY + player.getEyeHeight(), player.posZ);
 
-        // Calculate the vector from the player's eyes to the block center
         Vec3 toBlock = new Vec3(blockPos.getX() + 0.5, blockPos.getY() + 0.5, blockPos.getZ() + 0.5).subtract(playerEyes);
 
-        // Use rayTraceBlocks to check for line of sight
         MovingObjectPosition result = mc.theWorld.rayTraceBlocks(playerEyes, playerEyes.add(toBlock), false, true, false);
 
         return result != null && result.getBlockPos().equals(blockPos);
     }
 
-
-    public static List<BlockPos> getBlocksToBreak(float partialTicks) {
-        int reach = (int) mc.playerController.getBlockReachDistance();
-        return removeNotInHitDist(
-                removeNotVisible(
-                        mc.thePlayer.getPositionVector(),
-                        sortBlocks(getVeinAround(mc.thePlayer.getPosition(), reach, reach, reach))
-                ),
-                partialTicks
-        );
-    }
 
     private static List<BlockPos> getVeinAround(BlockPos posAround, int addX, int addY, int addZ) {
         return getBlocksInRadius(
@@ -289,30 +335,6 @@ public class GemstoneUtils {
                 posAround,
                 new Block[] { Blocks.stained_glass_pane, Blocks.stained_glass }
         );
-    }
-
-    private static List<BlockPos> sortBlocks(List<BlockPos> init) {
-        init.sort((BlockPos a, BlockPos b) -> rotation.getRotation(a).getYaw() > rotation.getRotation(b).getYaw() ? 1 : -1);
-        return init;
-    }
-
-    private static List<BlockPos> removeNotVisible(Vec3 playerPos, List<BlockPos> init) {
-        init.removeIf(a ->
-                AngleUtils.bresenham(
-                        BlockUtils.getCenteredVec(playerPos.addVector(0, 1.54, 0)),
-                        BlockUtils.getCenteredVec(BlockUtils.fromBPToVec(a))
-                ) ==
-                        null
-        );
-        return init;
-    }
-
-    private static List<BlockPos> removeNotInHitDist(List<BlockPos> init, float partialTicks) {
-        init.removeIf(a ->
-                BlockUtils.distanceFromTo(BlockUtils.fromBPToVec(a), mc.thePlayer.getPositionEyes(partialTicks)) >=
-                        mc.playerController.getBlockReachDistance()
-        );
-        return init;
     }
 
     public static List<BlockPos> getBlocksInRadius(int x, int y, int z, BlockPos around, Block[] blocks) {

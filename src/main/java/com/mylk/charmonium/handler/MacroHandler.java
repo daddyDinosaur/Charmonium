@@ -99,10 +99,25 @@ public class MacroHandler {
                 GameStateHandler.allowedIslands.add(GameStateHandler.Location.DWARVEN_MINES);
                 GameStateHandler.islandWarp = "/warp Forge";
                 return Macros.MACRO_ICE_WALKER.getMacro();
-            case MITHRIL_MINER:
-                GameStateHandler.allowedIslands.add(GameStateHandler.Location.DWARVEN_MINES);
-                GameStateHandler.islandWarp = "/warp Forge";
-                return Macros.MACRO_MITHRIL_MINER.getMacro();
+            case SLAYER_AURA:
+                switch (Config.SlayerAuraType) {
+                    case 0:
+                        GameStateHandler.allowedIslands.add(GameStateHandler.Location.HUB);
+                        GameStateHandler.islandWarp = "/warp Crypt";
+                        return Macros.MACRO_SLAYER_AURA.getMacro();
+                    case 1:
+                        GameStateHandler.allowedIslands.add(GameStateHandler.Location.SPIDER_DEN);
+                        GameStateHandler.islandWarp = "/warp Spider";
+                        return Macros.MACRO_SLAYER_AURA.getMacro();
+                    case 2:
+                        GameStateHandler.allowedIslands.add(GameStateHandler.Location.THE_PARK);
+                        GameStateHandler.islandWarp = "/warp Howl";
+                        return Macros.MACRO_SLAYER_AURA.getMacro();
+                    case 3:
+                        GameStateHandler.allowedIslands.add(GameStateHandler.Location.THE_END);
+                        GameStateHandler.islandWarp = "/warp End";
+                        return Macros.MACRO_SLAYER_AURA.getMacro();
+                }
             case GEMSTONE:
                 GameStateHandler.allowedIslands.add(GameStateHandler.Location.CRYSTAL_HOLLOWS);
                 GameStateHandler.islandWarp = "/warp ch";
@@ -410,7 +425,7 @@ public class MacroHandler {
     public enum Macros {
         MACRO_FORAGING(ForagingMacro.class),
         MACRO_ICE_WALKER(IceWalkerMacro.class),
-        MACRO_MITHRIL_MINER(MithrilMacro.class),
+        MACRO_SLAYER_AURA(SlayerAura.class),
         MACRO_GEMSTONE(GemstoneMacro.class),
         MACRO_SLAYERS(SlayerMacro.class),
         MACRO_FISHING(FishingMacro.class);
