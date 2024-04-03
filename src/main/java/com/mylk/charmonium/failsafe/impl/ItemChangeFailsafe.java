@@ -89,6 +89,7 @@ public class ItemChangeFailsafe extends Failsafe {
                 !(farmingTool.getItem() instanceof ItemFishingRod) &&
                 !(farmingTool.getItem() instanceof ItemPickaxe) &&
                 !(farmingTool.getItem() instanceof ItemAxe) &&
+                !(farmingTool.getItem() instanceof ItemSpade) &&
                 !(farmingTool.getItem() instanceof ItemSword) &&
                 !(farmingTool.getItem() instanceof ItemBow) &&
                 !(farmingTool.getItem() == Items.prismarine_shard) &&

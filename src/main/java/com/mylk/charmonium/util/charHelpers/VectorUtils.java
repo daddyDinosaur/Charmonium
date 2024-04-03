@@ -225,7 +225,7 @@ public class VectorUtils {
                             currentBlock.getY() + y / 4.0 - 0.125,
                             currentBlock.getZ() + z / 4.0 - 0.125);
 
-                    MovingObjectPosition position = rayTraceLook(vec, 4.5f);
+                    MovingObjectPosition position = rayTraceLook(vec, mc.playerController.getBlockReachDistance());
 
                     if (position != null && position.getBlockPos().equals(currentBlock)) {
                         double dist = position.hitVec.distanceTo(goal);
@@ -252,6 +252,31 @@ public class VectorUtils {
                     final MovingObjectPosition position = rayTraceLook(vec, 4.5f);
                     if (position != null && position.getBlockPos().equals((Object)pos)) {
                         final double dist = position.hitVec.distanceTo(goal);
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestHit = position.hitVec;
+                        }
+                    }
+                }
+            }
+        }
+        return bestHit;
+    }
+
+    public static Vec3 getClosestHittableToMiddleTeleport(final BlockPos pos) {
+        final double padding = 0.1; // Adjust the padding as needed
+        final Vec3 middle = new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+        double bestDist = Double.MAX_VALUE;
+        Vec3 bestHit = null;
+
+        // Adjust the loop range and starting position for padding
+        for (int x = 1; x < 5; ++x) {
+            for (int y = 1; y < 5; ++y) {
+                for (int z = 1; z < 5; ++z) {
+                    final Vec3 vec = new Vec3(pos.getX() + (x * 0.2) - padding, pos.getY() + (y * 0.2) - padding, pos.getZ() + (z * 0.2) - padding);
+                    final MovingObjectPosition position = rayTraceLook(vec, 56f);
+                    if (position != null && position.getBlockPos().equals(pos)) {
+                        final double dist = position.hitVec.distanceTo(middle);
                         if (dist < bestDist) {
                             bestDist = dist;
                             bestHit = position.hitVec;
@@ -291,7 +316,7 @@ public class VectorUtils {
             for (int y = 1; y < 6; ++y) {
                 for (int z = 1; z < 6; ++z) {
                     final Vec3 vec = new Vec3(pos.getX() + x / 5.0f - 0.1, pos.getY() + y / 5.0f - 0.1, pos.getZ() + z / 5.0f - 0.1);
-                    final MovingObjectPosition position = rayTraceLook(vec, 4.5f);
+                    final MovingObjectPosition position = rayTraceLook(vec, mc.playerController.getBlockReachDistance());
                     if (position != null && position.getBlockPos().equals((Object)pos)) {
                         vecs.add(position.hitVec);
                     }

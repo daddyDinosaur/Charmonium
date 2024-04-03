@@ -11,6 +11,7 @@ import com.mylk.charmonium.config.aotv.AOTVWaypointsStructs;
 import com.mylk.charmonium.event.MillisecondEvent;
 import com.mylk.charmonium.failsafe.FailsafeManager;
 import com.mylk.charmonium.feature.FeatureManager;
+import com.mylk.charmonium.feature.impl.GemstoneSackCompactor;
 import com.mylk.charmonium.feature.impl.MovRecPlayer;
 import com.mylk.charmonium.feature.impl.SkillTracker;
 import com.mylk.charmonium.feature.impl.runeCombining;
@@ -120,7 +121,7 @@ public class Charmonium {
         mc.gameSettings.pauseOnLostFocus = false;
         mc.gameSettings.gammaSetting = 1000;
         isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString().contains("-agentlib:jdwp");
-        Display.setTitle("Charmonium 〔v" + VERSION + "〕 " + (!isDebug ? "Bing Chilling" : "wazzup dev?") + " ☛ " + Minecraft.getMinecraft().getSession().getUsername());
+        Display.setTitle("Charmonium 〔v" + VERSION + "〕 ☛ " + (!isDebug ? "Bing Chilling" : "wazzup dev?"));
         FailsafeUtils.getInstance();
 
         ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
@@ -208,6 +209,7 @@ public class Charmonium {
         MinecraftForge.EVENT_BUS.register(SkillTracker.getInstance());
         MinecraftForge.EVENT_BUS.register(fuelFilling.getInstance());
         MinecraftForge.EVENT_BUS.register(runeCombining.getInstance());
+        MinecraftForge.EVENT_BUS.register(GemstoneSackCompactor.getInstance());
     }
 
     private void initializeFields() {

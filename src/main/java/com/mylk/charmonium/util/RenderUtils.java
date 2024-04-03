@@ -235,6 +235,22 @@ public class RenderUtils {
         GlStateManager.popMatrix();
     }
 
+    public static void drawCenterMiddleText(String text, RenderGameOverlayEvent event, Color color) {
+        drawCenterMiddleText(text, event, color, 3);
+    }
+
+    public static void drawCenterMiddleText(String text, RenderGameOverlayEvent event, Color color, float scale) {
+        ScaledResolution scaledResolution = event.resolution;
+        int scaledWidth = scaledResolution.getScaledWidth();
+        GlStateManager.pushMatrix();
+        GlStateManager.translate((float) (scaledWidth / 2), (float) 100, 0.0F);
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
+        GlStateManager.scale(scale, scale, scale);
+        Minecraft.getMinecraft().fontRendererObj.drawString(text, (-Minecraft.getMinecraft().fontRendererObj.getStringWidth(text) / 2f), 0, color.getRGB(), true);
+        GlStateManager.popMatrix();
+    }
+
 
     public static void drawText(String str, double X, double Y, double Z, float scale) {
         float lScale = scale;

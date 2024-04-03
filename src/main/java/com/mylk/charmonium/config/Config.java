@@ -4,10 +4,7 @@ import cc.polyfrost.oneconfig.config.annotations.Number;
 import cc.polyfrost.oneconfig.config.annotations.*;
 import cc.polyfrost.oneconfig.config.core.OneKeyBind;
 import cc.polyfrost.oneconfig.config.data.*;
-import com.mylk.charmonium.config.page.AOTVWaypointsPage;
-import com.mylk.charmonium.config.page.AutoSellNPCItemsPage;
-import com.mylk.charmonium.config.page.CustomFailsafeMessagesPage;
-import com.mylk.charmonium.config.page.FailsafeNotificationsPage;
+import com.mylk.charmonium.config.page.*;
 import com.mylk.charmonium.failsafe.FailsafeManager;
 import com.mylk.charmonium.feature.impl.*;
 import com.mylk.charmonium.handler.GameStateHandler;
@@ -62,7 +59,7 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
                     "Slayer Aura", // 3
                     "Slayers", // 4
                     "Fishing", // 5
-                    "Gemstone", // 6
+                    "Gemstone" // 6
             }
     )
     public static int SMacroType = 0;
@@ -195,6 +192,14 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     )
     public AOTVWaypointsPage aotvWaypointsPage = new AOTVWaypointsPage();
 
+    @Page(
+            name = "Gemstone Delays",
+            location = PageLocation.BOTTOM,
+            category = GENERAL,
+            subcategory = GEMSTONE_MACRO
+    )
+    public GemstoneDelaysPage gemstoneDelays = new GemstoneDelaysPage();
+
     @Switch(name = "Highlight Blocks", category = GENERAL, subcategory = GEMSTONE_MACRO)
     public static boolean highlightGemBlocks = true;
 
@@ -219,38 +224,58 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     @Switch(name = "Use Mining Speed Boost", category = GENERAL, subcategory = GEMSTONE_MACRO)
     public static boolean useMiningSpeedBoost = false;
 
+    @Switch(name = "Auto Kill", category = GENERAL, subcategory = GEMSTONE_MACRO)
+    public static boolean autoKillGems = false;
+
+    public enum SGAttackEnum {
+        LEFT_CLICK,
+        RANGED
+    }
+    @Dropdown(
+            name = "Attack mode",
+            description = "Select attack type", category = GENERAL, subcategory = GEMSTONE_MACRO,
+            options = {
+                    "Left Click", // 0
+                    "Right Click", // 1
+            }
+    )
+    public static int SGAttackType = 0;
+
+    @Text(name = "Auto Kill Weapon", placeholder = "Type your weapon name here", category = GENERAL, subcategory = GEMSTONE_MACRO)
+    public static String autoKillWGems = null;
+
+    @Slider(
+            name = "Auto Kill Range", category = GENERAL, subcategory = GEMSTONE_MACRO,
+            min = 0, max = 25, step = 1
+    )
+    public static int autoKillRGems = 3;
+
+    @Switch(name = "Diamond Goblin Spawn Alert", category = GENERAL, subcategory = GEMSTONE_MACRO)
+    public static boolean alertDiamondGob = false;
+
     @Switch(name = "Blue Cheese Omlette Swap", category = GENERAL, subcategory = GEMSTONE_MACRO)
     public static boolean blueCheeseOmeletteToggle = false;
-
-    @Slider(
-            name = "Rotation Delay", category = GENERAL, subcategory = GEMSTONE_MACRO,
-            min = 0, max = 1250, step = 25
-    )
-    public static int gemstoneRotationDelay = 75;
-
-    @Slider(
-            name = "Teleport Rotation Delay", category = GENERAL, subcategory = GEMSTONE_MACRO,
-            min = 0, max = 1250, step = 25
-    )
-    public static int gemstoneTeleportRotDelay = 50;
-
-    @Slider(
-            name = "Teleport Delay", category = GENERAL, subcategory = GEMSTONE_MACRO,
-            min = 100, max = 2000, step = 50
-    )
-    public static int gemstoneTeleportDelay = 500;
-
-    @Slider(
-            name = "Stuck Delay", category = GENERAL, subcategory = GEMSTONE_MACRO,
-            min = 1500, max = 7500, step = 100
-    )
-    public static int gemstoneStuckDelay = 2000;
 
     @Slider(
             name = "Ping Glide", description = "Set to 0 to disable", category = GENERAL, subcategory = GEMSTONE_MACRO,
             min = 0, max = 90, step = 1
     )
     public static int pingGlide = 8;
+
+    @Switch(
+            name = "Gemstone Sack Compactor",
+            category = GENERAL, subcategory = GEMSTONE_MACRO,
+            description = "Enable the module"
+    )
+    public static boolean gemstoneSackCompactor = false;
+
+    @Slider(
+            name = "Click Delay (ms)",
+            description = "How many milliseconds to wait between clicks",
+            category = GENERAL, subcategory = GEMSTONE_MACRO,
+            min = 50, max = 500
+    )
+    public static int gemstoneSackCompactorClickDelay = 200;
 
     @Dropdown(name = "Type of glass to mine", category = GENERAL, subcategory = GEMSTONE_MACRO, options = {"Ruby", "Amethyst", "Topaz", "Sapphire", "Amber", "Jade", "Jasper", "All"})
     public static int glassFilter = 0;
@@ -396,6 +421,18 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
             description = "Rune bot go brr"
     )
     public static boolean runeCombiner = false;
+
+    @Switch(
+            name = "Auto TNT", category = MISCELLANEOUS, subcategory = "Miscellaneous",
+            description = "yrr get thu tnt"
+    )
+    public static boolean autoBoomTNT = false;
+
+    @Switch(
+            name = "Auto TNT Place", category = MISCELLANEOUS, subcategory = "Miscellaneous",
+            description = "place dat"
+    )
+    public static boolean autoBoomTNTAutoPlacement = false;
     //</editor-fold>
 
     //<editor-fold desc="God Pot">
@@ -1047,6 +1084,49 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     public static int fastBreakSpeed = 1;
     //</editor-fold>
 
+    //<editor-fold desc="Banwave">
+    @Switch(
+            name = "Enable Banwave Checker", category = FAILSAFE, subcategory = "Banwave Checker",
+            description = "Checks for banwave and shows you the number of players banned in the last 15 minutes",
+            size = 2
+    )
+    public static boolean banwaveCheckerEnabled = true;
+    @Switch(
+            name = "Leave/pause during banwave", category = FAILSAFE, subcategory = "Banwave Checker",
+            description = "Automatically disconnects from the server or pauses the macro when a banwave is detected"
+    )
+    public static boolean enableLeavePauseOnBanwave = false;
+    @DualOption(
+            name = "Banwave Action", category = FAILSAFE, subcategory = "Banwave Checker",
+            description = "The action taken when banwave detected",
+            left = "Leave",
+            right = "Pause"
+    )
+    public static boolean banwaveAction = false;
+    @Dropdown(
+            name = "Base Threshold on", category = FAILSAFE, subcategory = "Banwave Checker",
+            options = {"Global bans", "FarmHelper bans", "Both"}, size = 2
+    )
+    public static int banwaveThresholdType = 0;
+    @Slider(
+            name = "Banwave Disconnect Threshold", category = FAILSAFE, subcategory = "Banwave Checker",
+            description = "The threshold to disconnect from the server on banwave",
+            min = 1, max = 100
+    )
+    public static int banwaveThreshold = 50;
+    @Number(
+            name = "Delay Before Reconnecting", category = FAILSAFE, subcategory = "Banwave Checker",
+            description = "The delay before reconnecting after leaving on banwave (in seconds)",
+            min = 1, max = 20, size = 2
+    )
+    public static int delayBeforeReconnecting = 5;
+    @Switch(
+            name = "Don't leave during Jacob's Contest", category = FAILSAFE, subcategory = "Banwave Checker",
+            description = "Prevents the macro from leaving during Jacob's Contest even when banwave detected"
+    )
+    public static boolean banwaveDontLeaveDuringJacobsContest = true;
+    //</editor-fold>
+
     //<editor-fold desc="Fly Path Finder">
     @Slider(
             name = "Allowed Overshoot Threshold", category = EXPERIMENTAL, subcategory = "Flight",
@@ -1136,16 +1216,26 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
 
         this.hideIf("glassPanesFullBlock", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("aotvWaypointsPage", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("pingGlide", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("gemstoneDelays", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("gemstoneTool", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("aotvShowRouteLines", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("aotvShowNumber", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("aotvHighlightRouteBlocks", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("refuelWithAbiphone", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("refuelThreshold", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("typeOfFuelIndex", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("autoKillGems", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("highlightGemBlocks", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("autoKillWGems", () -> !autoKillGems || getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("autoKillRGems", () -> !autoKillGems || getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("SGAttackType", () -> !autoKillGems || getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("refuelThreshold", () -> !refuelWithAbiphone || getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("typeOfFuelIndex", () -> !refuelWithAbiphone || getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("blueCheeseOmeletteToggle", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("useMiningSpeedBoost", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("glassFilter", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("gemstoneSackCompactorClickDelay", () -> !gemstoneSackCompactor);
+        this.hideIf("gemstoneSackCompactor", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("alertDiamondGob", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("gemstoneStuckDelay", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("gemstoneTeleportDelay", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("gemstoneTeleportRotDelay", () -> getMacro() != MacroEnum.GEMSTONE);
@@ -1161,6 +1251,7 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
         this.hideIf("fishingWeaponName", () -> getMacro() != MacroEnum.FISHING);
         this.hideIf("fishingRodName", () -> getMacro() != MacroEnum.FISHING);
 
+        this.hideIf("autoBoomTNTAutoPlacement", () -> !autoBoomTNT);
         this.addDependency("inventoryFullTime", "enableAutoSell");
         this.addDependency("autoSellMarketType", "enableAutoSell");
         this.addDependency("autoSellSacks", "enableAutoSell");

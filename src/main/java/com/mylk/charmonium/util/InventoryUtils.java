@@ -265,6 +265,13 @@ public class InventoryUtils {
         return loreList;
     }
 
+    public static String getItemLore(ItemStack itemStack, int index) {
+        if (itemStack.hasTagCompound()) {
+            return itemStack.getTagCompound().getCompoundTag("display").getTagList("Lore", 8).getStringTagAt(index);
+        }
+        return null;
+    }
+
     public static List<String> getLoreOfItemInContainer(int slot) {
         if (slot == -1) return new ArrayList<>();
         ItemStack itemStack = mc.thePlayer.openContainer.getSlot(slot).getStack();

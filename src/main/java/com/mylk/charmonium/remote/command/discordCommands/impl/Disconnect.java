@@ -40,7 +40,7 @@ public class Disconnect extends DiscordCommand {
                     int random = (int) (Math.random() * 0xFFFFFF);
                     embedBuilder.setColor(random);
                     embedBuilder.setFooter("-> Charmonium Remote Control", "https://media.forgecdn.net/avatars/266/994/637234317818341856.png");
-                    String avatar = "https://crafatar.com/avatars/" + action.args.get("uuid").getAsString();
+                    String avatar = "https://minotar.net/helm/" + username + "/600.png";
                     embedBuilder.setAuthor("Instance name -> " + username, avatar, avatar);
 
                     MessageEmbed em = embedBuilder.build();

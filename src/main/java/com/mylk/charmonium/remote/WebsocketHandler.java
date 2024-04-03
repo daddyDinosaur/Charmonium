@@ -42,16 +42,13 @@ public class WebsocketHandler {
     private WebsocketClient websocketClient;
     private int reconnectAttempts = 0;
     public WebsocketHandler() {
-        SetSpeedCommand speedCommand = new SetSpeedCommand();
         commands.addAll(Arrays.asList(
                 new InfoCommand(),
                 new ReconnectCommand(),
                 new ScreenshotCommand(),
-                speedCommand,
                 new ToggleCommand(),
                 new DisconnectCommand()
         ));
-        MinecraftForge.EVENT_BUS.register(speedCommand);
         LogUtils.sendDebug("[Remote Control] Registered " + commands.size() + " commands.");
     }
 

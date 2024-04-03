@@ -21,6 +21,7 @@ import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityArmorStand;
+import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.entity.projectile.EntityFishHook;
 import net.minecraft.entity.projectile.EntityPotion;
@@ -338,7 +339,7 @@ public class FishingMacro extends AbstractMacro {
             }
             if (target instanceof EntityPotion) return;
 
-            if (target == null || targetStand == null  || target instanceof EntityXPOrb || ((EntityLivingBase) target).getHealth() <= 1 || target.isDead) {
+            if (target == null || targetStand == null  || target instanceof EntityItem || target instanceof EntityXPOrb || ((EntityLivingBase) target).getHealth() <= 1 || target.isDead) {
                monstersKilled++;
                resetMacroState();
                break;
@@ -391,7 +392,8 @@ public class FishingMacro extends AbstractMacro {
 
    @SubscribeEvent
    public void onRender(RenderWorldLastEvent event) {
-      if (mc.thePlayer == null || mc.theWorld == null) return;
+      assert mc.thePlayer != null;
+      assert mc.theWorld != null;
 
       if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.FISHING) return;
 
@@ -410,8 +412,13 @@ public class FishingMacro extends AbstractMacro {
 
    @SubscribeEvent
    public void onChatReceive(ClientChatReceivedEvent event) {
+      assert mc.thePlayer != null;
+      assert mc.theWorld != null;
+
+      if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.FISHING) return;
+
       String message = StringUtils.stripControlCodes(event.message.getUnformattedText());
-      if (message.contains("You were killed by") && MacroHandler.getInstance().getCrop() == Config.MacroEnum.FISHING && MacroHandler.getInstance().isMacroToggled()) {
+      if (message.contains("You were killed by")) {
          hasDied = true;
          Charmonium.sendMessage("Warping to location");
          MacroHandler.walker.stop();
@@ -424,53 +431,36 @@ public class FishingMacro extends AbstractMacro {
       }
    }
 
-//   @SubscribeEvent
-//   public void onMillisecond(MillisecondEvent event) {
-//      if (!MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.SLAYER) {
-//         return;
-//      }
-//
-//      if (hasDied) {
-//         if (!diedDelay.hasPassed(2000)) return;
-//
-//         if (Charmonium.mc.thePlayer.getPositionVector().distanceTo(BlockUtils.fromBPToVec(TeleportSpawn)) > 4) {
-//            Charmonium.sendMessage("Recovering from death...");
-//            currentState = State.PAUSE;
-//            MacroHandler.walker.stop();
-//            KeyBindUtils.stopMovement();
-//            target = null;
-//            killingBoss = false;
-//            killingMiniBoss = false;
-//            killedBoss = false;
-//            mc.thePlayer.sendChatMessage(GameStateHandler.islandWarp);
-//            diedDelay.schedule();
-//            return;
-//         }
-//
-//         currentWaypoint = 0;
-//         MacroHandler.walkTo(wayToPath, currentWaypoint);
-//         currentWaypoint++;
-//         diedDelay.reset();
-//         hasDied = false;
-//         currentState = State.NONE;
-//
-//         if (Config.autoMaddox) {
-//            Maddoxer.callMaddox = Maddoxer.MaddoxS.NONE;
-//            killedBoss = true;
-//            KeyBindUtils.stopMovement();
-//            if (failsafesPage.enableScheduler)
-//               Scheduler.getInstance().pause();
-//            MacroHandler.getInstance().pauseMacro();
-//         }
-//      }
-//   }
-
    @SubscribeEvent
    public void handleParticles(SpawnParticleEvent packet) {
+      assert mc.thePlayer != null;
+      assert mc.theWorld != null;
+
+      if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.FISHING) return;
+
       if (packet.getParticleTypes() == EnumParticleTypes.WATER_WAKE || packet.getParticleTypes() == EnumParticleTypes.SMOKE_NORMAL || packet.getParticleTypes() == EnumParticleTypes.FLAME) {
          particles.add(new ParticleEntry(new Vec3(packet.getXCoord(), packet.getYCoord(), packet.getZCoord()), System.currentTimeMillis()));
       }
    }
+
+//   @SubscribeEvent
+//   public void renderFishingHookAge(RenderWorldLastEvent event) {
+//      assert mc.thePlayer != null;
+//      assert mc.theWorld != null;
+//
+//      //if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.FISHING) return;
+//
+//      List<EntityFishHook> fishHooks = mc.theWorld.getEntities(EntityFishHook.class, entity -> mc.thePlayer == entity.angler);
+//      if (fishHooks != null) {
+//         for (EntityFishHook entity : fishHooks) {
+//            if (entity != null) {
+//               Vec3 position = entity.getPositionVector().addVector(0.0, 0.5, 0.0);
+//               String age = String.format("%.2fs", entity.ticksExisted / 20.0);
+//               Charmonium.sendMessage(age + " |  in woda: " + entity.isInWater());
+//            }
+//         }
+//      }
+//   }
 
    private boolean canWalk(String direction) {
       float yaw = mc.thePlayer.rotationYaw;

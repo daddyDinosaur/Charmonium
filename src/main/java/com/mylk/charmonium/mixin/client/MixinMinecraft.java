@@ -1,6 +1,7 @@
 package com.mylk.charmonium.mixin.client;
 
 import com.mylk.charmonium.config.Config;
+import com.mylk.charmonium.event.ClickEvent;
 import com.mylk.charmonium.handler.GameStateHandler;
 import com.mylk.charmonium.handler.MacroHandler;
 import net.minecraft.block.Block;
@@ -16,6 +17,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.BlockPos;
 import net.minecraft.util.MovingObjectPosition;
+import net.minecraftforge.common.MinecraftForge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -85,5 +87,41 @@ public class MixinMinecraft {
 
                 if (i % 3 == 0) this.thePlayer.swingItem();
             }
+    }
+
+    @Inject(method = "clickMouse", at = @At("HEAD"))
+    public void clickMouse(CallbackInfo ci) {
+        MovingObjectPosition objectMouseOver = Minecraft.getMinecraft().objectMouseOver;
+        if (objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY && objectMouseOver.entityHit != null) {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Left(objectMouseOver.entityHit));
+        } else if (objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK && objectMouseOver.getBlockPos() != null) {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Left(objectMouseOver.getBlockPos()));
+        } else {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Left());
+        }
+    }
+
+    @Inject(method = "rightClickMouse", at = @At("HEAD"))
+    public void rightClickMouse(CallbackInfo ci) {
+        MovingObjectPosition objectMouseOver = Minecraft.getMinecraft().objectMouseOver;
+        if (objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY && objectMouseOver.entityHit != null) {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Right(objectMouseOver.entityHit));
+        } else if (objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK && objectMouseOver.getBlockPos() != null) {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Right(objectMouseOver.getBlockPos()));
+        } else {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Right());
+        }
+    }
+
+    @Inject(method = "middleClickMouse", at = @At("HEAD"))
+    public void middleClickMouse(CallbackInfo ci) {
+        MovingObjectPosition objectMouseOver = Minecraft.getMinecraft().objectMouseOver;
+        if (objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.ENTITY && objectMouseOver.entityHit != null) {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Middle(objectMouseOver.entityHit));
+        } else if (objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK && objectMouseOver.getBlockPos() != null) {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Middle(objectMouseOver.getBlockPos()));
+        } else {
+            MinecraftForge.EVENT_BUS.post(new ClickEvent.Middle());
+        }
     }
 }

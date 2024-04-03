@@ -120,6 +120,7 @@ public class AntiStuck implements IFeature {
     public void onTick(TickEvent.ClientTickEvent event) {
         if (mc.thePlayer == null || mc.theWorld == null) return;
         if (!MacroHandler.getInstance().isMacroToggled() ||
+                Config.getMacro() == Config.MacroEnum.GEMSTONE ||
                 MacroHandler.getInstance().isTeleporting() ||
                 !AntiStuck.getInstance().isToggled() ||
                 AntiStuck.getInstance().isRunning() ||

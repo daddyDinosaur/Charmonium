@@ -1,6 +1,7 @@
 package com.mylk.charmonium.handler;
 
 import com.mylk.charmonium.event.MotionUpdateEvent;
+import com.mylk.charmonium.macro.impl.GemstoneMacro;
 import com.mylk.charmonium.mixin.client.MinecraftAccessor;
 import com.mylk.charmonium.util.AngleUtils;
 import com.mylk.charmonium.util.BlockUtils;
@@ -71,10 +72,20 @@ public class RotationHandler {
             throw new IllegalArgumentException("No target or rotation specified!");
         }
 
+        if ((neededChange.getPitch() > 360 || neededChange.getPitch() < -360) && GemstoneMacro.targetGem != null) {
+            GemstoneMacro.targetGem = null;
+            return;
+        }
+
+        if ((neededChange.getYaw() > 360 || neededChange.getYaw() < -360) && GemstoneMacro.targetGem != null) {
+            GemstoneMacro.targetGem = null;
+            return;
+        }
+
         targetRotation.setYaw(startRotation.getYaw() + neededChange.getYaw());
         targetRotation.setPitch(startRotation.getPitch() + neededChange.getPitch());
 
-        LogUtils.sendDebug("[Rotation] Needed change: " + neededChange.getYaw() + " " + neededChange.getPitch());
+        //LogUtils.sendDebug("[Rotation] Needed change: " + neededChange.getYaw() + " " + neededChange.getPitch());
 
         float absYaw = Math.max(Math.abs(neededChange.getYaw()), 1);
         float absPitch = Math.max(Math.abs(neededChange.getPitch()), 1);
@@ -201,7 +212,7 @@ public class RotationHandler {
         targetRotation.setYaw(startRotation.getYaw() + neededChange.getYaw());
         targetRotation.setPitch(startRotation.getPitch() + neededChange.getPitch());
 
-        LogUtils.sendDebug("[Rotation] Needed change: " + neededChange.getYaw() + " " + neededChange.getPitch());
+        //LogUtils.sendDebug("[Rotation] Needed change: " + neededChange.getYaw() + " " + neededChange.getPitch());
 
         float time = configuration.getTime();
         endTime = System.currentTimeMillis() + Math.max((long) time, 50);
