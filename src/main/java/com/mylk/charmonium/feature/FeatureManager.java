@@ -33,6 +33,7 @@ public class FeatureManager {
             LagDetector.getInstance(),
             LeaveTimer.getInstance(),
             Scheduler.getInstance(),
+            BanInfo.getInstance(),
             UngrabMouse.getInstance()
         );
         features.addAll(featuresList);

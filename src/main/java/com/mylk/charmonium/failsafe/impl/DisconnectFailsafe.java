@@ -1,10 +1,12 @@
 package com.mylk.charmonium.failsafe.impl;
 
 import cc.polyfrost.oneconfig.utils.Notifications;
+import com.mylk.charmonium.config.Config;
 import com.mylk.charmonium.config.page.FailsafeNotificationsPage;
 import com.mylk.charmonium.failsafe.Failsafe;
 import com.mylk.charmonium.failsafe.FailsafeManager;
 import com.mylk.charmonium.feature.impl.AutoReconnect;
+import com.mylk.charmonium.feature.impl.BanInfo;
 import com.mylk.charmonium.handler.MacroHandler;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 
@@ -50,6 +52,8 @@ public class DisconnectFailsafe extends Failsafe {
     @Override
     public void onDisconnectDetection(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
         if (MacroHandler.getInstance().isTeleporting()) return;
+        if (BanInfo.getInstance().isBanwave() && Config.enableLeavePauseOnBanwave && !Config.banwaveAction)
+            return;
 
         FailsafeManager.getInstance().possibleDetection(this);
     }

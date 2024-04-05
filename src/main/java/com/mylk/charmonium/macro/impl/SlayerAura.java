@@ -327,31 +327,58 @@ public class SlayerAura extends AbstractMacro {
 
     public static String[] drawInfo() {
         if (SkillTracker.skillsInitialized()) {
-            double xpToShow = SkillTracker.getText("Combat");
-            int xpPerHour = (int) Math.round(xpToShow / ((SkillTracker.skillStopwatch.getTime() + 1) / 3600000d));
-            int nxtLvl = Config.Skill_Combat + 1;
-
-            return new String[]{
-                    "§r§lStats:",
-                    "§rMacro: §fSlayer Aura - " + getSlayerName(),
-                    "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
-                    "§rBosses Killed: §f" + killedBosses,
-                    "§rXP Earned: §f" + NumberFormat.getNumberInstance(Locale.US).format(xpToShow) + " [" + NumberFormat.getIntegerInstance(Locale.US).format(xpPerHour) + "/hr]",
-                    "§rTime til' Lvl. " + nxtLvl + ": §f" + SkillTracker.getTimeBetween(0, SkillTracker.xpLeft / (xpPerHour / 3600D)),
-                    "§rState: §f" + currentState.name(),
-                    "§r§lTarget:",
-                    "§rBoss Spawned: §f" + (killingBoss ? "Yes" : "No"),
-                    "§rDistance: §f" + (target != null ? (String.format("%.2f", Math.floor(Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target))) + "m") : "No target"),
-                    "§rVisible: §f" + (target != null ? (PlayerUtils.entityIsVisible(target) ? "Yes" : "No") : "No target"),
-            };
+            if (SkillTracker.hitMax("Mining")) {
+                return drawMaxSkillInfo();
+            } else {
+                return drawSkillInfo();
+            }
+        } else {
+            return drawDefaultInfo();
         }
+    }
+
+    private static String[] drawMaxSkillInfo() {
+        return new String[]{
+                "§r§lStats:",
+                "§rMacro: §fSlayer Aura - " + getSlayerName(),
+                "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
+                "§rBosses Killed: §f" + killedBosses,
+                "§rMAX SKILL",
+                "§rState: §f" + currentState.name(),
+                "§r§lTarget:",
+                "§rBoss Spawned: §f" + (killingBoss ? "Yes" : "No"),
+                "§rDistance: §f" + (target != null ? (String.format("%.2f", Math.floor(Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target))) + "m") : "No target"),
+                "§rVisible: §f" + (target != null ? (PlayerUtils.entityIsVisible(target) ? "Yes" : "No") : "No target"),
+        };
+    }
+
+    private static String[] drawSkillInfo() {
+        double xpToShow = SkillTracker.getText("Combat");
+        int xpPerHour = (int) Math.round(xpToShow / ((SkillTracker.skillStopwatch.getTime() + 1) / 3600000d));
+        int nxtLvl = Config.Skill_Combat + 1;
 
         return new String[]{
                 "§r§lStats:",
                 "§rMacro: §fSlayer Aura - " + getSlayerName(),
                 "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
                 "§rBosses Killed: §f" + killedBosses,
-                "§r Open '/skills' to track xp",
+                "§rXP Earned: §f" + NumberFormat.getNumberInstance(Locale.US).format(xpToShow) + " [" + NumberFormat.getIntegerInstance(Locale.US).format(xpPerHour) + "/hr]",
+                "§rTime til' Lvl. " + nxtLvl + ": §f" + SkillTracker.getTimeBetween(0, SkillTracker.xpLeft / (xpPerHour / 3600D)),
+                "§rState: §f" + currentState.name(),
+                "§r§lTarget:",
+                "§rBoss Spawned: §f" + (killingBoss ? "Yes" : "No"),
+                "§rDistance: §f" + (target != null ? (String.format("%.2f", Math.floor(Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target))) + "m") : "No target"),
+                "§rVisible: §f" + (target != null ? (PlayerUtils.entityIsVisible(target) ? "Yes" : "No") : "No target"),
+        };
+    }
+
+    private static String[] drawDefaultInfo() {
+        return new String[]{
+                "§r§lStats:",
+                "§rMacro: §fSlayer Aura - " + getSlayerName(),
+                "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
+                "§rBosses Killed: §f" + killedBosses,
+                "§rOpen '/skills' to track xp",
                 "§rState: §f" + currentState.name(),
                 "§r§lTarget:",
                 "§rBoss Spawned: §f" + (killingBoss ? "Yes" : "No"),

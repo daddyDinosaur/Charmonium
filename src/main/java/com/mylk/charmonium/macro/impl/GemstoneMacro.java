@@ -696,28 +696,54 @@ GemstoneMacro extends AbstractMacro {
 
     public static String[] drawInfo() {
         if (SkillTracker.skillsInitialized()) {
-            double xpToShow = SkillTracker.getText("Mining");
-            int xpPerHour = (int) Math.round(xpToShow / ((SkillTracker.skillStopwatch.getTime() + 1) / 3600000d));
-            int nxtLvl = Config.Skill_Mining + 1;
-
-            return new String[]{
-                    "§r§lStats:",
-                    "§rMacro: §fGemstone Miner",
-                    "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
-                    "§rXP Earned: §f" + NumberFormat.getNumberInstance(Locale.US).format(xpToShow) + " [" + NumberFormat.getNumberInstance(Locale.US).format(xpPerHour) + "/hr]",
-                    "§rTime til' Lvl. " + nxtLvl + ": §f" + SkillTracker.getTimeBetween(0, SkillTracker.xpLeft / (xpPerHour / 3600D)),
-                    "§rState: §f" + currentState.name(),
-            };
+            if (SkillTracker.hitMax("Mining")) {
+                return drawMaxSkillInfo();
+            } else {
+                return drawSkillInfo();
+            }
+        } else {
+            return drawDefaultInfo();
         }
+    }
+
+    private static String[] drawMaxSkillInfo() {
+        return new String[]{
+                "§r§lStats:",
+                "§rMacro: §fGemstone Miner",
+                "",
+                "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
+                "§rMAX SKILL",
+                "§rState: §f" + currentState.name(),
+        };
+    }
+
+    private static String[] drawSkillInfo() {
+        double xpToShow = SkillTracker.getText("Mining");
+        int xpPerHour = (int) Math.round(xpToShow / ((SkillTracker.skillStopwatch.getTime() + 1) / 3600000d));
+        int nxtLvl = Config.Skill_Mining + 1;
 
         return new String[]{
                 "§r§lStats:",
                 "§rMacro: §fGemstone Miner",
+                "",
                 "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
-                "§r Open '/skills' to track xp",
+                "§rXP Earned: §f" + NumberFormat.getNumberInstance(Locale.US).format(xpToShow) + " [" + NumberFormat.getNumberInstance(Locale.US).format(xpPerHour) + "/hr]",
+                "§rTime til' Lvl. " + nxtLvl + ": §f" + SkillTracker.getTimeBetween(0, SkillTracker.xpLeft / (xpPerHour / 3600D)),
                 "§rState: §f" + currentState.name(),
         };
     }
+
+    private static String[] drawDefaultInfo() {
+        return new String[]{
+                "§r§lStats:",
+                "§rMacro: §fGemstone Miner",
+                "",
+                "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
+                "§rOpen '/skills' to track xp",
+                "§rState: §f" + currentState.name(),
+        };
+    }
+
 
     public enum State {
         NONE,

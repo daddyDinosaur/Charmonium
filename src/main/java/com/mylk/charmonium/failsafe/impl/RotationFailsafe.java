@@ -85,6 +85,7 @@ public class RotationFailsafe extends Failsafe {
                 SlayerMacro.hasDied ||
                 IceWalkerMacro.hasDied ||
                 FishingMacro.hasDied ||
+                FishingMacro.target != null ||
                 FishingMacro.stuckInWater ||
                 SlayerMacro.killingBoss ||
                 GemstoneMacro.stopChecks ||

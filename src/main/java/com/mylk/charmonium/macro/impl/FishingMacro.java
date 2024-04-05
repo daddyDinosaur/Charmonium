@@ -354,14 +354,17 @@ public class FishingMacro extends AbstractMacro {
             } else {
                boolean targeted = npcUtils.entityIsTargeted(target);
                if (target != null && !targeted) {
-                  rotation.easeTo(new RotationConfiguration(rotation.getRotation(target.getPositionVector().add(new Vec3(0, target.height / 2, 0))), Config.getRandomRotationTime(), null));
+                  if (Config.SFAttackType == Config.SFAttackEnum.HYPERION.ordinal())
+                     rotation.easeTo(new RotationConfiguration(new Rotation(mc.thePlayer.rotationYaw, 90.0F), Config.getRandomRotationTime(), null));
+                  else
+                     rotation.easeTo(new RotationConfiguration(rotation.getRotation(target.getPositionVector().add(new Vec3(0, target.height / 2, 0))), Config.getRandomRotationTime(), null));
                }
 
-               if (Config.SAttackType == Config.SAttackEnum.LEFT_CLICK.ordinal()) {
-                  assert target != null;
-                  currentTool = Config.fishingWeaponName;
+               assert target != null;
+               currentTool = Config.fishingWeaponName;
 
-                  if (Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target) <= 2.9) {
+               if (Config.SFAttackType == Config.SFAttackEnum.LEFT_CLICK.ordinal()) {
+                  if (Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target) <= mc.playerController.getBlockReachDistance()) {
                      if (Config.shiftWhenKill)
                         KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindSneak, true);
                      if (attackDelay.hasPassed(100)) {
@@ -381,9 +384,30 @@ public class FishingMacro extends AbstractMacro {
                      if (Config.jumpWhenWalking)
                         KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindJump, true);
                   }
-               } /*else {
-
-               }*/
+               } else if (Config.SFAttackType == Config.SFAttackEnum.RANGED.ordinal()){
+                  if (Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target) <= 8) {
+                     if (Config.shiftWhenKill)
+                        KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindSneak, true);
+                     if (attackDelay.hasPassed(100)) {
+                        KeyBindUtils.stopMovement();
+                        KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindJump, false);
+                        KeyBindUtils.onTick(mc.gameSettings.keyBindUseItem);
+                        attackDelay.schedule();
+                     }
+                  }
+               } else {
+                  if (AngleUtils.getAngleDifference(mc.thePlayer.rotationPitch, 90) >= 10) return;
+                  if (Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target) <= 5) {
+                     if (Config.shiftWhenKill)
+                        KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindSneak, true);
+                     if (attackDelay.hasPassed(100)) {
+                        KeyBindUtils.stopMovement();
+                        KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindJump, false);
+                        KeyBindUtils.onTick(mc.gameSettings.keyBindUseItem);
+                        attackDelay.schedule();
+                     }
+                  }
+               }
             }
 
             break;
@@ -443,25 +467,6 @@ public class FishingMacro extends AbstractMacro {
       }
    }
 
-//   @SubscribeEvent
-//   public void renderFishingHookAge(RenderWorldLastEvent event) {
-//      assert mc.thePlayer != null;
-//      assert mc.theWorld != null;
-//
-//      //if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.FISHING) return;
-//
-//      List<EntityFishHook> fishHooks = mc.theWorld.getEntities(EntityFishHook.class, entity -> mc.thePlayer == entity.angler);
-//      if (fishHooks != null) {
-//         for (EntityFishHook entity : fishHooks) {
-//            if (entity != null) {
-//               Vec3 position = entity.getPositionVector().addVector(0.0, 0.5, 0.0);
-//               String age = String.format("%.2fs", entity.ticksExisted / 20.0);
-//               Charmonium.sendMessage(age + " |  in woda: " + entity.isInWater());
-//            }
-//         }
-//      }
-//   }
-
    private boolean canWalk(String direction) {
       float yaw = mc.thePlayer.rotationYaw;
       BlockPos blockPos = new BlockPos(0, 0, 0);
@@ -516,6 +521,31 @@ public class FishingMacro extends AbstractMacro {
    }
 
    public static String[] drawInfo() {
+      if (SkillTracker.skillsInitialized()) {
+         if (SkillTracker.hitMax("Mining")) {
+            return drawMaxSkillInfo();
+         } else {
+            return drawSkillInfo();
+         }
+      } else {
+         return drawDefaultInfo();
+      }
+   }
+
+   private static String[] drawMaxSkillInfo() {
+      return new String[]{
+              "§r§lStats:",
+              "§rMacro: §fFishing",
+              "",
+              "§rFish Fished: §f" + fishFished,
+              "§rMonsters Killed: §f" + monstersKilled,
+              "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
+              "§rMAX SKILL",
+              "§rState: §f" + currentState.name(),
+      };
+   }
+
+   private static String[] drawSkillInfo() {
       double xpToShow = SkillTracker.getText("Fishing");
       int xpPerHour = (int) Math.round(xpToShow / ((SkillTracker.skillStopwatch.getTime() + 1) / 3600000d));
       int nxtLvl = Config.Skill_Fishing + 1;
@@ -529,6 +559,19 @@ public class FishingMacro extends AbstractMacro {
               "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
               "§rXP Earned: §f" + NumberFormat.getNumberInstance(Locale.US).format(xpToShow) + " [" + NumberFormat.getNumberInstance(Locale.US).format(xpPerHour) + "/h]",
               "§rTime til' Lvl. " + nxtLvl + ": §f" + SkillTracker.getTimeBetween(0, SkillTracker.xpLeft / (xpPerHour / 3600D)),
+              "§rState: §f" + currentState.name(),
+      };
+   }
+
+   private static String[] drawDefaultInfo() {
+      return new String[]{
+              "§r§lStats:",
+              "§rMacro: §fFishing",
+              "",
+              "§rFish Fished: §f" + fishFished,
+              "§rMonsters Killed: §f" + monstersKilled,
+              "§rTime: §f" + (Scheduler.getInstance().isRunning() ? Scheduler.getInstance().getStatusString() : "Macroing"),
+              "§rOpen '/skills' to track xp",
               "§rState: §f" + currentState.name(),
       };
    }

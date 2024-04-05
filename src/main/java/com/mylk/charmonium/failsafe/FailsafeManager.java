@@ -5,6 +5,7 @@ import com.mylk.charmonium.config.Config;
 import com.mylk.charmonium.event.ReceivePacketEvent;
 import com.mylk.charmonium.failsafe.impl.*;
 import com.mylk.charmonium.feature.FeatureManager;
+import com.mylk.charmonium.feature.impl.BanInfo;
 import com.mylk.charmonium.feature.impl.Scheduler;
 import com.mylk.charmonium.handler.MacroHandler;
 import com.mylk.charmonium.handler.RotationHandler;
@@ -99,6 +100,7 @@ public class FailsafeManager {
         failsafes.addAll(
                 Arrays.asList(
                         BedrockCageFailsafe.getInstance(),
+                        BanwaveFailsafe.getInstance(),
                         DirtFailsafe.getInstance(),
                         DisconnectFailsafe.getInstance(),
                         EvacuateFailsafe.getInstance(),
@@ -214,6 +216,7 @@ public class FailsafeManager {
                 }, 750, TimeUnit.MILLISECONDS);
 
                 LogUtils.sendFailsafeMessage(tempFailsafe.getType().label, failsafe.shouldTagEveryone());
+                BanInfo.getInstance().sendFailsafeInfo(tempFailsafe.getType());
                 if (failsafe.shouldSendNotification())
                     FailsafeUtils.getInstance().sendNotification(StringUtils.stripControlCodes(tempFailsafe.getType().label), TrayIcon.MessageType.WARNING);
             }, 800, TimeUnit.MILLISECONDS);
@@ -298,7 +301,10 @@ public class FailsafeManager {
         } else if (restartMacroAfterFailsafeDelay.isScheduled()) {
             String text = "Restarting the macro in: " + LogUtils.formatTime(restartMacroAfterFailsafeDelay.getRemainingTime());
             RenderUtils.drawCenterTopText(text, event, Color.ORANGE);
-        } else if (triggeredFailsafe.isPresent()) {
+        } else if (triggeredFailsafe.isPresent()
+                && !triggeredFailsafe.get().equals(BanwaveFailsafe.getInstance())
+                && !triggeredFailsafe.get().equals(EvacuateFailsafe.getInstance())
+        ) {
             ArrayList<String> textLines = new ArrayList<>();
             textLines.add("§6" + StringUtils.stripControlCodes(triggeredFailsafe.get().getType().name()).replace("_", " "));
             textLines.add("§c§lYOU ARE DURING STAFF CHECK!");
@@ -377,6 +383,7 @@ public class FailsafeManager {
         DIRT_CHECK("You've got§l DIRT CHECKED§r§d by staff member!"),
         ITEM_CHANGE_CHECK("Your §lITEM HAS CHANGED§r§d!"),
         WORLD_CHANGE_CHECK("Your §lWORLD HAS CHANGED§r§d!"),
+        BANWAVE("Banwave has been detected!"),
         BEDROCK_CAGE_CHECK("You've got§l BEDROCK CAGED§r§d by staff member!"),
         EVACUATE("Server is restarting! Evacuate!"),
         DISCONNECT("You've been§l DISCONNECTED§r§d from the server!");

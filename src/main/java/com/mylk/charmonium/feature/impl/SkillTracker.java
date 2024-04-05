@@ -3,10 +3,15 @@ package com.mylk.charmonium.feature.impl;
 import com.mylk.charmonium.Charmonium;
 import com.mylk.charmonium.config.Config;
 import com.mylk.charmonium.util.MarkdownFormatter;
+import com.mylk.charmonium.util.ScoreboardUtils;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.entity.EntityPlayerSP;
+import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.inventory.GuiChest;
 import net.minecraft.inventory.ContainerChest;
 import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.StringUtils;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.GuiOpenEvent;
@@ -23,7 +28,6 @@ import java.util.Locale;
 import java.util.Map;
 
 public class SkillTracker {
-    public static boolean autoSkillTracker = true;
     static String lastSkill = "Farming";
     public static StopWatch skillStopwatch = new StopWatch();
     static double farmingXP = 0;
@@ -50,7 +54,6 @@ public class SkillTracker {
     public static double xpLeft = 0;
     static double timeSinceGained = 0;
     public static int tickAmount = 1;
-
     static final NumberFormat nf = NumberFormat.getInstance(Locale.US);
     private static SkillTracker instance;
 
@@ -66,49 +69,23 @@ public class SkillTracker {
             2300000, 2400000, 2500000, 2600000, 2750000, 2900000, 3100000, 3400000, 3700000, 4000000, 4300000,
             4600000, 4900000, 5200000, 5500000, 5800000, 6100000, 6400000, 6700000, 7000000};
 
-    @SubscribeEvent
-    public void onTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.START) { return; }
-
-        tickAmount++;
-
-        if (Charmonium.mc.currentScreen instanceof GuiChest && tickAmount % 5 == 0 && Charmonium.mc.thePlayer != null) {
-            ContainerChest chest = (ContainerChest) Charmonium.mc.thePlayer.openContainer;
-            String chestName = chest.getLowerChestInventory().getDisplayName().getUnformattedText().trim();
-
-            if (chestName.equals("Your Skills")) {
-                List<Slot> invSlots = ((GuiChest) Charmonium.mc.currentScreen).inventorySlots.inventorySlots;
-
-                Config.Skill_Farming = initializeSkill(invSlots.get(19).getStack());
-                Config.Skill_Mining = initializeSkill(invSlots.get(20).getStack());
-                Config.Skill_Combat = initializeSkill(invSlots.get(21).getStack());
-                Config.Skill_Foraging = initializeSkill(invSlots.get(22).getStack());
-                Config.Skill_Fishing = initializeSkill(invSlots.get(23).getStack());
-                Config.Skill_Enchanting = initializeSkill(invSlots.get(24).getStack());
-                Config.Skill_Alchemy = initializeSkill(invSlots.get(25).getStack());
-                Config.Skill_Carpentry = initializeSkill(invSlots.get(29).getStack());
-
-                System.out.println("Updated skill levels.");
-            }
-        }
-    }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onChat(ClientChatReceivedEvent event) throws ParseException {
-        if (event.type != 2) return;
+        if (!ScoreboardUtils.getScoreboardTitle().contains("SKYBLOCK") || event.type != 2) return;
 
         String[] actionBarSections = event.message.getUnformattedText().split(" {3,}");
 
         for (String section : actionBarSections) {
             if (section.contains("+") && section.contains("(") && section.contains(")") && !section.contains("Runecrafting") && !section.contains("Carpentry") && !section.contains("SkyBlock XP")) {
-                if (autoSkillTracker && System.currentTimeMillis() / 1000 - timeSinceGained <= 2) {
+                if (System.currentTimeMillis() / 1000 - timeSinceGained <= 2) {
                     if (skillStopwatch.isStarted() && skillStopwatch.isSuspended()) {
                         skillStopwatch.resume();
                     } else if (!skillStopwatch.isStarted()) {
                         skillStopwatch.start();
                     }
                 }
-                timeSinceGained = System.currentTimeMillis() / 1000;
+                timeSinceGained = (double) System.currentTimeMillis() / 1000;
 
                 String skill = section.substring(section.indexOf(" ") + 1, section.lastIndexOf(" "));
                 double totalXP;
@@ -135,7 +112,28 @@ public class SkillTracker {
                     int previousXP = getPastXpEarned(xpToLevelUp, limit);
                     totalXP = currentXP + previousXP;
                 } else {
-                    int level = getLevel(section);
+                    if (!skillsInitialized()) {
+                        return;
+                    }
+
+                    int level = 1;
+                    if (section.contains("Farming")) {
+                        level = Config.Skill_Farming;
+                    } else if (section.contains("Mining")) {
+                        level = Config.Skill_Mining;
+                    } else if (section.contains("Combat")) {
+                        level = Config.Skill_Combat;
+                    } else if (section.contains("Foraging")) {
+                        level = Config.Skill_Foraging;
+                    } else if (section.contains("Fishing")) {
+                        level = Config.Skill_Fishing;
+                    } else if (section.contains("Enchanting")) {
+                        level = Config.Skill_Enchanting;
+                    } else if (section.contains("Alchemy")) {
+                        level = Config.Skill_Alchemy;
+                    } else if (section.contains("Carpentry")) {
+                        level = Config.Skill_Carpentry;
+                    }
 
                     totalXP = getTotalXpEarned(level, nf.parse(section.substring(section.indexOf("(") + 1, section.indexOf("%"))).doubleValue());
                     xpLeft = getTotalXpEarned(level + 1, 0) - totalXP;
@@ -248,31 +246,9 @@ public class SkillTracker {
         }
     }
 
-    private static int getLevel(String section) {
-        int level = 1;
-        if (section.contains("Farming")) {
-            level = Config.Skill_Farming;
-        } else if (section.contains("Mining")) {
-            level = Config.Skill_Mining;
-        } else if (section.contains("Combat")) {
-            level = Config.Skill_Combat;
-        } else if (section.contains("Foraging")) {
-            level = Config.Skill_Foraging;
-        } else if (section.contains("Fishing")) {
-            level = Config.Skill_Fishing;
-        } else if (section.contains("Enchanting")) {
-            level = Config.Skill_Enchanting;
-        } else if (section.contains("Alchemy")) {
-            level = Config.Skill_Alchemy;
-        } else if (section.contains("Carpentry")) {
-            level = Config.Skill_Carpentry;
-        }
-        return level;
-    }
-
     @SubscribeEvent
     public void onGuiOpen(GuiOpenEvent event) {
-        if (event.gui instanceof GuiChest && autoSkillTracker && skillStopwatch.isStarted() && !skillStopwatch.isSuspended()) {
+        if (event.gui instanceof GuiChest && skillStopwatch.isStarted() && !skillStopwatch.isSuspended()) {
             skillStopwatch.suspend();
         }
     }
@@ -289,6 +265,7 @@ public class SkillTracker {
         }
         return 0;
     }
+
     public static double getText(String Macro) {
         double xpToShow = 0;
         switch (Macro) {
@@ -322,19 +299,34 @@ public class SkillTracker {
         return xpToShow;
     }
 
-    public static void resetSkills() {
-        SkillTracker.skillStopwatch = new StopWatch();
-        SkillTracker.farmingXPGained = 0;
-        SkillTracker.miningXPGained = 0;
-        SkillTracker.combatXPGained = 0;
-        SkillTracker.foragingXPGained = 0;
-        SkillTracker.fishingXPGained = 0;
-        SkillTracker.enchantingXPGained = 0;
-        SkillTracker.alchemyXPGained = 0;
-    }
+    @SubscribeEvent
+    public void onTick(TickEvent.ClientTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
 
-    public static boolean skillsInitialized() {
-        return Config.Skill_Mining != -1;
+        Minecraft mc = Minecraft.getMinecraft();
+        EntityPlayerSP player = mc.thePlayer;
+
+        tickAmount++;
+
+        if (mc.currentScreen instanceof GuiChest && tickAmount % 5 == 0 && player != null) {
+            ContainerChest chest = (ContainerChest) player.openContainer;
+            String chestName = chest.getLowerChestInventory().getDisplayName().getUnformattedText().trim();
+
+            if (chestName.equals("Your Skills")) {
+                List<Slot> invSlots = ((GuiChest) mc.currentScreen).inventorySlots.inventorySlots;
+
+                Config.Skill_Combat = initializeSkill(invSlots.get(19).getStack());
+                Config.Skill_Farming = initializeSkill(invSlots.get(20).getStack());
+                Config.Skill_Fishing = initializeSkill(invSlots.get(21).getStack());
+                Config.Skill_Mining = initializeSkill(invSlots.get(22).getStack());
+                Config.Skill_Foraging = initializeSkill(invSlots.get(23).getStack());
+                Config.Skill_Enchanting = initializeSkill(invSlots.get(24).getStack());
+                Config.Skill_Alchemy = initializeSkill(invSlots.get(25).getStack());
+                Config.Skill_Carpentry = initializeSkill(invSlots.get(29).getStack());
+
+                System.out.println("Updated skill levels.");
+            }
+        }
     }
 
     public static String getTimeBetween(double timeOne, double timeTwo) {
@@ -366,6 +358,39 @@ public class SkillTracker {
         return timeFormatted;
     }
 
+    public static String getColour(int index) {
+        return "§" + Integer.toHexString(index);
+    }
+
+    public static int getWidthFromText(String text) {
+        if (text == null) return 0;
+
+        FontRenderer fr = Minecraft.getMinecraft().fontRendererObj;
+        String[] splitText = text.split("\n");
+
+        int width = 0;
+        for (String line : splitText) {
+            int stringLength = fr.getStringWidth(line);
+            if (stringLength > width) {
+                width = stringLength;
+            }
+        }
+
+        return width;
+    }
+
+    public static int getHeightFromText(String text) {
+        if (text == null) return 0;
+
+        FontRenderer fr = Minecraft.getMinecraft().fontRendererObj;
+        String[] splitText = text.split("\n");
+        return splitText.length * fr.FONT_HEIGHT;
+    }
+
+    public static boolean skillsInitialized() {
+        return Config.Skill_Mining != -1;
+    }
+
     public static int initializeSkill(ItemStack skillStack) {
         int level = -1;
 
@@ -381,6 +406,30 @@ public class SkillTracker {
         }
 
         return level;
+    }
+
+    public static int getIntFromString(String text, boolean romanNumeral) {
+        if (text.matches(".*\\d.*")) {
+            return Integer.parseInt(StringUtils.stripControlCodes(text).replaceAll("\\D", ""));
+        } else if (romanNumeral) {
+            int number = 0;
+
+            for (int i = 0; i < text.length(); i++) {
+                if (!romanNumerals.containsKey(text.charAt(i))) continue;
+                int roman = romanNumerals.get(text.charAt(i));
+
+                if (i != text.length() - 1 && romanNumerals.containsKey(text.charAt(i + 1)) && roman < romanNumerals.get(text.charAt(i + 1))) {
+                    number += romanNumerals.get(text.charAt(i + 1)) - roman;
+                    i++;
+                } else {
+                    number += roman;
+                }
+            }
+
+            return number;
+        }
+
+        return -1;
     }
 
     public static int getPastXpEarned(int currentLevelXp, int limit) {
@@ -408,6 +457,25 @@ public class SkillTracker {
         return xpAdded + progress;
     }
 
+    public static void resetSkills() {
+        SkillTracker.skillStopwatch = new StopWatch();
+        SkillTracker.farmingXPGained = 0;
+        SkillTracker.miningXPGained = 0;
+        SkillTracker.combatXPGained = 0;
+        SkillTracker.foragingXPGained = 0;
+        SkillTracker.fishingXPGained = 0;
+        SkillTracker.enchantingXPGained = 0;
+        SkillTracker.alchemyXPGained = 0;
+    }
+
+    public static boolean hitMax(String Skill) {
+        if (Skill.equals("Farming") || Skill.equals("Enchanting") || Skill.equals("Mining") || Skill.equals("Combat")) {
+            return Config.Skill_Farming + 1 > 60;
+        } else {
+            return Config.Skill_Fishing + 1 > 50;
+        }
+    }
+
     static Map<Character, Integer> romanNumerals = new HashMap<Character, Integer>(){{
         put('I', 1);
         put('V', 5);
@@ -418,27 +486,4 @@ public class SkillTracker {
         put('M', 1000);
     }};
 
-    public static int getIntFromString(String text, boolean romanNumeral) {
-        if (text.matches(".*\\d.*")) {
-            return Integer.parseInt(StringUtils.stripControlCodes(text).replaceAll("\\D", ""));
-        } else if (romanNumeral) {
-            int number = 0;
-
-            for (int i = 0; i < text.length(); i++) {
-                if (!romanNumerals.containsKey(text.charAt(i))) continue;
-                int roman = romanNumerals.get(text.charAt(i));
-
-                if (i != text.length() - 1 && romanNumerals.containsKey(text.charAt(i + 1)) && roman < romanNumerals.get(text.charAt(i + 1))) {
-                    number += romanNumerals.get(text.charAt(i + 1)) - roman;
-                    i++;
-                } else {
-                    number += roman;
-                }
-            }
-
-            return number;
-        }
-
-        return -1;
-    }
 }

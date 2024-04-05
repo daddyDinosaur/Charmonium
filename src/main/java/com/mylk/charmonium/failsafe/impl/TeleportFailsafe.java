@@ -88,6 +88,7 @@ public class TeleportFailsafe extends Failsafe {
                 IceWalkerMacro.hasDied ||
                 FishingMacro.hasDied ||
                 FishingMacro.stuckInWater ||
+                FishingMacro.target != null ||
                 SlayerMacro.killingBoss ||
                 GemstoneMacro.stopChecks ||
                 Objects.requireNonNull(BlockUtils.getBlockState(blockBehindPlayer)).getBlock() == Blocks.wooden_slab ||

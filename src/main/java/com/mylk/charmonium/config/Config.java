@@ -160,6 +160,22 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     @Switch(name = "Use Warps", category = GENERAL, subcategory = SLAYER_MACRO)
     public static boolean useWarps = false;
 
+    public enum SFAttackEnum {
+        LEFT_CLICK,
+        RANGED,
+        HYPERION
+    }
+    @Dropdown(
+            name = "Attack mode",
+            description = "Select attack type", category = GENERAL, subcategory = FISHING_MACRO,
+            options = {
+                    "Left Click", // 0
+                    "Right Click", // 1
+                    "Hyperion"
+            }
+    )
+    public static int SFAttackType = 0;
+
     @Slider(
             name = "Sea Creature Range", category = GENERAL, subcategory = FISHING_MACRO,
             min = 0, max = 12, step = 1
@@ -1189,7 +1205,7 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
             return true;
         if (macroName.equals("jumpWhenWalking") && (getMacro() == MacroEnum.ICE_WALKER || getMacro() == MacroEnum.FISHING || getMacro() == MacroEnum.SLAYER))
             return true;
-        return macroName.equals("SAttackType") && (getMacro() == MacroEnum.ICE_WALKER || getMacro() == MacroEnum.FISHING || getMacro() == MacroEnum.SLAYER);
+        return macroName.equals("SAttackType") && (getMacro() == MacroEnum.ICE_WALKER  || getMacro() == MacroEnum.SLAYER);
     }
 
     public Config() {

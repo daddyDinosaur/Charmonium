@@ -227,8 +227,6 @@ public class MacroHandler {
             m.getRotation().reset();
         });
 
-        SkillTracker.resetSkills();
-
         waypoint = null;
         walker.stop();
 

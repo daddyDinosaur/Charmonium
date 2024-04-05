@@ -102,6 +102,12 @@ public abstract class AbstractMacro {
     public abstract void invokeState();
 
     public void onEnable() {
+        if (SkillTracker.skillStopwatch.isStarted() && SkillTracker.skillStopwatch.isSuspended()) {
+            SkillTracker.skillStopwatch.resume();
+        } else if (!SkillTracker.skillStopwatch.isStarted()) {
+            SkillTracker.skillStopwatch.start();
+        }
+
         checkOnSpawnClock.reset();
         GameStateHandler.getInstance().scheduleRewarp();
         setEnabled(true);
@@ -109,6 +115,12 @@ public abstract class AbstractMacro {
     }
 
     public void onDisable() {
+        if (SkillTracker.skillStopwatch.isStarted() && !SkillTracker.skillStopwatch.isSuspended()) {
+            SkillTracker.skillStopwatch.suspend();
+        }
+
+        SkillTracker.resetSkills();
+
         DesyncChecker.getInstance().getClickedBlocks().clear();
         KeyBindUtils.stopMovement();
         rotation.reset();

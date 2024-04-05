@@ -51,11 +51,13 @@ public class macroHud extends TextHud{
             }
 
             lines.addAll(Arrays.asList(macroLines));
+            lines.add("");
 
             if (BanInfo.getInstance().isRunning() && Config.banwaveCheckerEnabled && BanInfo.getInstance().isConnected()) {
                 lines.add("Ban stats from the last " + BanInfo.getInstance().getMinutes() + " minutes");
                 lines.add("Staff bans: " + BanInfo.getInstance().getStaffBans());
-                lines.add("Detected by FarmHelper: " + BanInfo.getInstance().getBansByMod());
+                if (BanInfo.getInstance().getBansByMod() != -1)
+                    lines.add("Detected by FarmHelper: " + BanInfo.getInstance().getBansByMod());
             } else if (!BanInfo.getInstance().isConnected() && Config.banwaveCheckerEnabled && !BanInfo.getInstance().isReceivedBanwaveInfo()) {
                 lines.add("Connecting to the analytics server...");
                 if (System.currentTimeMillis() - BanInfo.getInstance().getLastReceivedPacket() > 300_000) {
