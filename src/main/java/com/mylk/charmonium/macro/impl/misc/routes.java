@@ -10,11 +10,12 @@ public class routes {
             Arrays.asList(
                     new AOTVWaypointsStructs.Waypoint("1", -30, 69, -75),
                     new AOTVWaypointsStructs.Waypoint("2", -45, 69, -77),
-                    new AOTVWaypointsStructs.Waypoint("3", -67, 69, -79),
-                    new AOTVWaypointsStructs.Waypoint("4", -67, 69, -43),
-                    new AOTVWaypointsStructs.Waypoint("5", -82, 70, -39),
-                    new AOTVWaypointsStructs.Waypoint("6", -98, 71, -31),
-                    new AOTVWaypointsStructs.Waypoint("7", -111, 73, -32)
+                    new AOTVWaypointsStructs.Waypoint("3", -50, 69, -77),
+                    new AOTVWaypointsStructs.Waypoint("4", -67, 69, -79),
+                    new AOTVWaypointsStructs.Waypoint("5", -67, 69, -43),
+                    new AOTVWaypointsStructs.Waypoint("6", -82, 70, -39),
+                    new AOTVWaypointsStructs.Waypoint("7", -98, 71, -31),
+                    new AOTVWaypointsStructs.Waypoint("8", -111, 73, -32)
             )
     );
 
@@ -171,20 +172,21 @@ public class routes {
             Arrays.asList(
                     new AOTVWaypointsStructs.Waypoint("1", -30, 69, -75),
                     new AOTVWaypointsStructs.Waypoint("2", -45, 69, -77),
-                    new AOTVWaypointsStructs.Waypoint("3", -67, 69, -79),
-                    new AOTVWaypointsStructs.Waypoint("4", -67, 69, -43),
-                    new AOTVWaypointsStructs.Waypoint("5", -82, 70, -39),
-                    new AOTVWaypointsStructs.Waypoint("6", -100, 70, -53),
-                    new AOTVWaypointsStructs.Waypoint("7", -101, 70, -58),
-                    new AOTVWaypointsStructs.Waypoint("8", -131, 70, -86),
-                    new AOTVWaypointsStructs.Waypoint("9", -165, 73, -85),
-                    new AOTVWaypointsStructs.Waypoint("10", -190, 73, -86),
-                    new AOTVWaypointsStructs.Waypoint("11", -194, 69, -100),
-                    new AOTVWaypointsStructs.Waypoint("12", -187, 66, -106),
-                    new AOTVWaypointsStructs.Waypoint("13", -172, 60, -99),
-                    new AOTVWaypointsStructs.Waypoint("14", -158, 60, -99),
-                    new AOTVWaypointsStructs.Waypoint("15", -154, 58, -100),
-                    new AOTVWaypointsStructs.Waypoint("16", -151, 57, -101)
+                    new AOTVWaypointsStructs.Waypoint("3", -50, 69, -77),
+                    new AOTVWaypointsStructs.Waypoint("4", -67, 69, -79),
+                    new AOTVWaypointsStructs.Waypoint("5", -67, 69, -43),
+                    new AOTVWaypointsStructs.Waypoint("6", -82, 70, -39),
+                    new AOTVWaypointsStructs.Waypoint("7", -100, 70, -53),
+                    new AOTVWaypointsStructs.Waypoint("8", -101, 70, -58),
+                    new AOTVWaypointsStructs.Waypoint("9", -131, 70, -86),
+                    new AOTVWaypointsStructs.Waypoint("10", -165, 73, -85),
+                    new AOTVWaypointsStructs.Waypoint("11", -190, 73, -86),
+                    new AOTVWaypointsStructs.Waypoint("12", -194, 69, -100),
+                    new AOTVWaypointsStructs.Waypoint("13", -187, 66, -106),
+                    new AOTVWaypointsStructs.Waypoint("14", -172, 60, -99),
+                    new AOTVWaypointsStructs.Waypoint("15", -158, 60, -99),
+                    new AOTVWaypointsStructs.Waypoint("16", -154, 58, -100),
+                    new AOTVWaypointsStructs.Waypoint("17", -151, 57, -101)
             )
     );
 
@@ -262,12 +264,13 @@ public class routes {
             Arrays.asList(
                     new AOTVWaypointsStructs.Waypoint("1", -30, 69, -75),
                     new AOTVWaypointsStructs.Waypoint("2", -45, 69, -77),
-                    new AOTVWaypointsStructs.Waypoint("3", -67, 69, -79),
-                    new AOTVWaypointsStructs.Waypoint("4", -67, 69, -43),
-                    new AOTVWaypointsStructs.Waypoint("5", -83, 71, -21),
-                    new AOTVWaypointsStructs.Waypoint("6", -93, 68, 20),
-                    new AOTVWaypointsStructs.Waypoint("7", -79, 68, 23),
-                    new AOTVWaypointsStructs.Waypoint("8", -68, 68, 17)
+                    new AOTVWaypointsStructs.Waypoint("3", -50, 69, -77),
+                    new AOTVWaypointsStructs.Waypoint("4", -67, 69, -79),
+                    new AOTVWaypointsStructs.Waypoint("5", -67, 69, -43),
+                    new AOTVWaypointsStructs.Waypoint("6", -83, 71, -21),
+                    new AOTVWaypointsStructs.Waypoint("7", -93, 68, 20),
+                    new AOTVWaypointsStructs.Waypoint("8", -79, 68, 23),
+                    new AOTVWaypointsStructs.Waypoint("9", -68, 68, 17)
             )
     );
 

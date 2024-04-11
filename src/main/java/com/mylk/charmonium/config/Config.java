@@ -386,6 +386,31 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
 
     //</editor-fold>
 
+
+    @Switch(
+            name = "Auto Rune Combiner", category = "CharMods", subcategory = "qol",
+            description = "Rune bot go brr"
+    )
+    public static boolean runeCombiner = false;
+
+    @Switch(
+            name = "Replaced Diorite in F7", category = "CharMods", subcategory = "dungeons"
+    )
+    public static boolean replaceDiorite = false;
+
+    @Switch(
+            name = "Auto Terms - wouldnt use xd", category = "CharMods", subcategory = "dungeons"
+    )
+    public static boolean autoTerminals = false;
+
+    @Slider(
+            name = "Terms Click Delay (ms)",
+            description = "How many milliseconds to wait between clicks",
+            category = "CharMods", subcategory = "dungeons",
+            min = 50, max = 1000, step = 10
+    )
+    public static int termClickDelay = 125;
+
     //<editor-fold desc="MISC">
     //<editor-fold desc="Keybinds">
     @KeyBind(
@@ -432,23 +457,6 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     )
     public static boolean autoUngrabMouse = true;
 
-    @Switch(
-            name = "Auto Rune Combiner", category = MISCELLANEOUS, subcategory = "Miscellaneous",
-            description = "Rune bot go brr"
-    )
-    public static boolean runeCombiner = false;
-
-    @Switch(
-            name = "Auto TNT", category = MISCELLANEOUS, subcategory = "Miscellaneous",
-            description = "yrr get thu tnt"
-    )
-    public static boolean autoBoomTNT = false;
-
-    @Switch(
-            name = "Auto TNT Place", category = MISCELLANEOUS, subcategory = "Miscellaneous",
-            description = "place dat"
-    )
-    public static boolean autoBoomTNTAutoPlacement = false;
     //</editor-fold>
 
     //<editor-fold desc="God Pot">
@@ -1266,8 +1274,8 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
         this.hideIf("recastDelay", () -> getMacro() != MacroEnum.FISHING);
         this.hideIf("fishingWeaponName", () -> getMacro() != MacroEnum.FISHING);
         this.hideIf("fishingRodName", () -> getMacro() != MacroEnum.FISHING);
+        this.hideIf("SFAttackType", () -> getMacro() != MacroEnum.FISHING);
 
-        this.hideIf("autoBoomTNTAutoPlacement", () -> !autoBoomTNT);
         this.addDependency("inventoryFullTime", "enableAutoSell");
         this.addDependency("autoSellMarketType", "enableAutoSell");
         this.addDependency("autoSellSacks", "enableAutoSell");

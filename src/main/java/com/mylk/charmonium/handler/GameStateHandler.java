@@ -1,5 +1,7 @@
 package com.mylk.charmonium.handler;
 
+import com.mojang.realmsclient.gui.ChatFormatting;
+import com.mylk.charmonium.Charmonium;
 import com.mylk.charmonium.config.Config;
 import com.mylk.charmonium.failsafe.FailsafeManager;
 import com.mylk.charmonium.failsafe.impl.DirtFailsafe;
@@ -13,14 +15,19 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
 import net.minecraft.init.Blocks;
+import net.minecraft.scoreboard.Score;
 import net.minecraft.util.IChatComponent;
 import net.minecraft.util.StringUtils;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.event.world.WorldEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
+import scala.Char;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -74,6 +81,9 @@ public class GameStateHandler {
     private int speed = 0;
     public static ArrayList<Location> allowedIslands = new ArrayList<>();;
     public static String islandWarp = "";
+    public static int dungeonFloor = -1;
+    public static boolean inDungeons = false;
+    public static boolean inBoss = false;
 
     public static GameStateHandler getInstance() {
         if (INSTANCE == null) {
@@ -86,8 +96,22 @@ public class GameStateHandler {
     public void onWorldChange(WorldEvent.Unload event) {
         lastLocation = location;
         location = Location.TELEPORTING;
+        inDungeons = false;
+        dungeonFloor = -1;
+        inBoss = false;
     }
 
+    @SubscribeEvent(priority = EventPriority.HIGHEST, receiveCanceled = true)
+    public void onChat(ClientChatReceivedEvent event) {
+        if (!inDungeons) return;
+        String message = event.message.getFormattedText();
+
+        if ((message.startsWith("§r§c[BOSS] ") && !message.contains(" The Watcher§r§f:")) || message.startsWith("§r§4[BOSS] ")) {
+            if (!inBoss) {
+                inBoss = true;
+            }
+        }
+    }
 
     @SubscribeEvent
     public void onTickCheckCoins(TickEvent.PlayerTickEvent event) {
@@ -199,6 +223,18 @@ public class GameStateHandler {
             return;
         }
 
+        if (!inDungeons && !ScoreboardUtils.getScoreboardLines().isEmpty()) {
+            Optional<String> dungeonLine = ScoreboardUtils.getScoreboardLines().stream()
+                    .filter(lineD -> ScoreboardUtils.cleanSB(lineD).contains("The Catacombs ("))
+                    .filter(lineD -> !ScoreboardUtils.cleanSB(lineD).contains("Queue"))
+                    .findFirst();
+
+            dungeonLine.ifPresent(lineD -> {
+                inDungeons = true;
+                dungeonFloor = extractDungeonFloor(lineD);
+            });
+        }
+
         for (String line : TablistUtils.getTabList()) {
             Matcher matcher = areaPattern.matcher(line);
             if (matcher.find()) {
@@ -207,6 +243,7 @@ public class GameStateHandler {
                     if (area.equals(island.getName())) {
                         lastLocation = location;
                         location = island;
+
                         return;
                     }
                 }
@@ -269,6 +306,47 @@ public class GameStateHandler {
 
         reWarpTimer.reset();
     }
+
+    private int extractDungeonFloor(String line) {
+        Pattern pattern = Pattern.compile("[FM]\\d+");
+        Matcher matcher = pattern.matcher(line);
+
+        if (matcher.find()) {
+            String floorSubstring = matcher.group();
+
+            try {
+                return Integer.parseInt(floorSubstring.substring(1));
+            } catch (NumberFormatException e) {
+                return -1;
+            }
+        }
+
+        return -1;
+    }
+
+    private boolean isSimilar(String message, String entry) {
+        String pattern = ".*" + Pattern.quote(entry) + ".*";
+        Matcher matcher = Pattern.compile(pattern).matcher(message);
+        return matcher.matches();
+    }
+
+    public static String getPhase() {
+        if (dungeonFloor != 7 || !inBoss) return null;
+
+        int posY = Charmonium.mc.thePlayer.getPosition().getY();
+        if (posY > 210) {
+            return "P1";
+        } else if (posY > 155) {
+            return "P2";
+        } else if (posY > 100) {
+            return "P3";
+        } else if (posY > 45) {
+            return "P4";
+        } else {
+            return "P5";
+        }
+    }
+
 
     public boolean canRewarp() {
         return reWarpTimer.hasPassed(randomRewarpValueToWait);
@@ -370,14 +448,5 @@ public class GameStateHandler {
         FAILSAFE,
         NOT_ACTIVE,
         UNKNOWN
-    }
-
-    private enum JacobMedal {
-        NONE,
-        BRONZE,
-        SILVER,
-        GOLD,
-        PLATINUM,
-        DIAMOND
     }
 }

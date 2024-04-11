@@ -12,6 +12,9 @@ pluginManagement {
         maven("https://repo.essential.gg/repository/maven-public/")
         maven("https://jitpack.io/")
     }
+    plugins {
+        kotlin("jvm") version "1.9.23"
+    }
 }
 
 rootProject.name = "Charmonium"

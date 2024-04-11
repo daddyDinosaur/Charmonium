@@ -154,18 +154,19 @@ GemstoneMacro extends AbstractMacro {
         ArrayList<AOTVWaypointsStructs.Waypoint> Waypoints = Charmonium.aotvWaypoints.getSelectedRoute().waypoints;
         int heightCheckY = Waypoints.get(currentWaypoint).y - 2;
 
-        if (Config.autoKillGems && currentState != State.TELEPORT) {
+        if (Config.autoKillGems) {
             List<Entity> entities = getEntity();
 
             if (!entities.isEmpty() && target == null) {
                 Optional<Entity> optional = entities.stream().min(Comparator.comparingDouble(entity -> entity.getDistanceToEntity(mc.thePlayer)));
 
-                if (optional.get().getPosition().getY() < heightCheckY) return;
+                if (optional.get().getPosition().getY() < heightCheckY) { entities.remove(optional.get()); return; }
                 targetStand = optional.get();
                 target = npcUtils.getEntityCuttingOtherEntity(targetStand, null);
                 noKillTimer.schedule();
                 currentState = State.KILL;
                 Charmonium.sendMessage("Found Yog...");
+                return;
             }
         }
 
@@ -618,14 +619,20 @@ GemstoneMacro extends AbstractMacro {
         return mc.theWorld.getEntitiesInAABBexcluding(mc.thePlayer,
                         mc.thePlayer.getEntityBoundingBox().expand(Config.autoKillRGems, (Config.autoKillRGems >> 1), Config.autoKillRGems),
                         e -> e instanceof EntityArmorStand).stream()
-                .filter((v) -> v.getDistanceToEntity(mc.thePlayer) <= Config.autoKillRGems &&
+                .filter((v) -> {
+                    double distance = v.getDistanceToEntity(mc.thePlayer);
+                    double verticalDifference = mc.thePlayer.posY - v.posY;
+                    return distance <= Config.autoKillRGems &&
                             !v.getName().contains(mc.thePlayer.getName()) &&
                             !v.isDead &&
                             ((EntityLivingBase) v).getHealth() > 0 &&
-                            autoKillMobs.stream().anyMatch((a) -> v.getCustomNameTag().contains(a)))
+                            autoKillMobs.stream().anyMatch((a) -> v.getCustomNameTag().contains(a)) &&
+                            verticalDifference >= -2 && verticalDifference <= 4;
+                })
                 .filter(PlayerUtils::entityIsVisible)
                 .collect(Collectors.toList());
     }
+
 
     public void checkProgress(BlockPos blockPos) {
         if (blockPos != null) {

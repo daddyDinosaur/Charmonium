@@ -3,6 +3,7 @@
 plugins {
     idea
     java
+    //kotlin("jvm") version "1.9.23"
     id("cc.polyfrost.loom") version "0.10.0.+"
     id("dev.architectury.architectury-pack200") version "0.1.3"
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -52,6 +53,7 @@ loom {
 }
 
 sourceSets.main {
+    //output.setResourcesDir(file("${buildDir}/classes/kotlin/main"))
     output.setResourcesDir(sourceSets.main.flatMap { it.java.classesDirectory })
 }
 
@@ -86,6 +88,7 @@ dependencies {
     runtimeOnly("me.djtheredstoner:DevAuth-forge-legacy:1.1.2")
 
     implementation("net.dv8tion:JDA:5.0.0-beta.13")
+    //implementation("org.jetbrains.kotlin:kotlin-reflect")
 
     implementation("com.github.onixiya1337.baritone-fly:baritone-deobf:nirox-fly-SNAPSHOT")
     shadowImpl("com.github.onixiya1337.baritone-fly:baritone-api-forge:nirox-fly-SNAPSHOT") {
@@ -94,6 +97,7 @@ dependencies {
         exclude(module = "SimpleTweaker")
         exclude(module = "launchwrapper")
     }
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 // Tasks:

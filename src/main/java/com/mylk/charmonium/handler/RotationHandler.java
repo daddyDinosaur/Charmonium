@@ -26,7 +26,7 @@ import static cc.polyfrost.oneconfig.libs.universal.UMath.wrapAngleTo180;
 
 public class RotationHandler {
     private static RotationHandler instance;
-    private final Minecraft mc = Minecraft.getMinecraft();
+    private static final Minecraft mc = Minecraft.getMinecraft();
     private final Rotation startRotation = new Rotation(0f, 0f);
     private final Rotation targetRotation = new Rotation(0f, 0f);
     private final Clock dontRotate = new Clock();
@@ -45,9 +45,9 @@ public class RotationHandler {
     @Getter
     private float serverSidePitch = 0;
     @Getter
-    private RotationConfiguration configuration;
+    private static RotationConfiguration configuration;
 
-    private final Random random = new Random();
+    private static final Random random = new Random();
 
     public static RotationHandler getInstance() {
         if (instance == null) {
@@ -268,7 +268,7 @@ public class RotationHandler {
 
     private double randomAddition = (Math.random() * 0.3 - 0.15);
 
-    public Rotation getRotation(Vec3 to) {
+    public static Rotation getRotation(Vec3 to) {
         return getRotation(mc.thePlayer.getPositionEyes(((MinecraftAccessor) mc).getTimer().renderPartialTicks), to, false);
     }
 
@@ -284,7 +284,7 @@ public class RotationHandler {
         return getRotation(mc.thePlayer.getPositionEyes(((MinecraftAccessor) mc).getTimer().renderPartialTicks), to.getPositionVector().addVector(0, Math.min(((to.height * 0.85) + randomAddition), (to.height - 0.05)), 0), randomness);
     }
 
-    public Rotation getRotation(Vec3 from, Vec3 to) {
+    public static Rotation getRotation(Vec3 from, Vec3 to) {
         if (configuration != null && random.nextGaussian() > 0.8) {
             return getRotation(from, to, configuration.randomness());
         }
@@ -302,7 +302,7 @@ public class RotationHandler {
         return getRotation(mc.thePlayer.getPositionEyes(((MinecraftAccessor) mc).getTimer().renderPartialTicks), new Vec3(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5), randomness);
     }
 
-    public Rotation getRotation(Vec3 from, Vec3 to, boolean randomness) {
+    public static Rotation getRotation(Vec3 from, Vec3 to, boolean randomness) {
         double xDiff = to.xCoord - from.xCoord;
         double yDiff = to.yCoord - from.yCoord;
         double zDiff = to.zCoord - from.zCoord;

@@ -538,7 +538,7 @@ public class BanInfo implements IFeature {
                         if (!receivedBanwaveInfo) {
                             if (client.isOpen() && client.getReadyState() != ReadyState.NOT_YET_CONNECTED) {
                                 LogUtils.sendDebug("Connected to analytics websocket server");
-                                Notifications.INSTANCE.send("Charmonium INFO", "Connected to analytics websocket server");
+                                //Notifications.INSTANCE.send("Charmonium INFO", "Connected to analytics websocket server");
                             }
                         }
                         receivedBanwaveInfo = true;
@@ -566,7 +566,7 @@ public class BanInfo implements IFeature {
             @Override
             public void onError(Exception ex) {
                 LogUtils.sendDebug("Error while connecting to analytics server. " + ex.getMessage());
-                ex.printStackTrace();
+                //ex.printStackTrace();
             }
         };
     }
