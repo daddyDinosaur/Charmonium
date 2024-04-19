@@ -398,19 +398,6 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     )
     public static boolean replaceDiorite = false;
 
-    @Switch(
-            name = "Auto Terms - wouldnt use xd", category = "CharMods", subcategory = "dungeons"
-    )
-    public static boolean autoTerminals = false;
-
-    @Slider(
-            name = "Terms Click Delay (ms)",
-            description = "How many milliseconds to wait between clicks",
-            category = "CharMods", subcategory = "dungeons",
-            min = 50, max = 1000, step = 10
-    )
-    public static int termClickDelay = 125;
-
     //<editor-fold desc="MISC">
     //<editor-fold desc="Keybinds">
     @KeyBind(

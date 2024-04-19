@@ -92,6 +92,7 @@ public class ItemChangeFailsafe extends Failsafe {
                 !(farmingTool.getItem() instanceof ItemSpade) &&
                 !(farmingTool.getItem() instanceof ItemSword) &&
                 !(farmingTool.getItem() instanceof ItemBow) &&
+                !(farmingTool.getItem() == Items.blaze_rod) &&
                 !(farmingTool.getItem() == Items.prismarine_shard) &&
                 !(farmingTool.getItem() instanceof ItemSkull)) {
             LogUtils.sendDebug("[Failsafe] No farming tool in hand! Slot: " + slot);

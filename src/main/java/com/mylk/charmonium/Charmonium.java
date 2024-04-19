@@ -14,10 +14,8 @@ import com.mylk.charmonium.feature.FeatureManager;
 import com.mylk.charmonium.feature.impl.GemstoneSackCompactor;
 import com.mylk.charmonium.feature.impl.MovRecPlayer;
 import com.mylk.charmonium.feature.impl.SkillTracker;
-import com.mylk.charmonium.feature.impl.charMods.lightsDevice;
 import com.mylk.charmonium.feature.impl.charMods.replaceDiorite;
-import com.mylk.charmonium.feature.impl.charMods.terminals.TerminalSolver;
-import com.mylk.charmonium.feature.impl.runeCombining;
+import com.mylk.charmonium.feature.impl.charMods.runeCombining;
 import com.mylk.charmonium.handler.*;
 import com.mylk.charmonium.macro.impl.*;
 import com.mylk.charmonium.macro.impl.misc.Maddoxer;
@@ -214,8 +212,6 @@ public class Charmonium {
         MinecraftForge.EVENT_BUS.register(runeCombining.getInstance());
         MinecraftForge.EVENT_BUS.register(GemstoneSackCompactor.getInstance());
         MinecraftForge.EVENT_BUS.register(replaceDiorite.getInstance());
-        MinecraftForge.EVENT_BUS.register(lightsDevice.getInstance());
-        MinecraftForge.EVENT_BUS.register(TerminalSolver.getInstance());
     }
 
     private void initializeFields() {

@@ -1,33 +1,18 @@
-package com.mylk.charmonium.feature.impl;
+package com.mylk.charmonium.feature.impl.charMods;
 
-import cc.polyfrost.oneconfig.utils.Multithreading;
 import com.mylk.charmonium.Charmonium;
 import com.mylk.charmonium.config.Config;
-import com.mylk.charmonium.event.ScreenClosedEvent;
-import com.mylk.charmonium.macro.impl.misc.fuelFilling;
-import com.mylk.charmonium.util.InventoryUtils;
 import com.mylk.charmonium.util.helper.Timer;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.inventory.GuiChest;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraft.init.Blocks;
 import net.minecraft.inventory.ContainerChest;
 import net.minecraft.inventory.Slot;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
-import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import org.jetbrains.annotations.NotNull;
-import scala.Char;
 
 import java.awt.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import static com.mylk.charmonium.Charmonium.mc;
 
