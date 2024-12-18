@@ -15,10 +15,10 @@ import com.mylk.charmonium.handler.MacroHandler;
 import com.mylk.charmonium.handler.RotationHandler;
 import com.mylk.charmonium.macro.AbstractMacro;
 import com.mylk.charmonium.macro.impl.misc.fuelFilling;
+import com.mylk.charmonium.macro.impl.misc.routes;
 import com.mylk.charmonium.mixin.block.RenderGlobalAccessor;
-import com.mylk.charmonium.mixin.client.PlayerControllerMPAccessor;
 import com.mylk.charmonium.util.*;
-import com.mylk.charmonium.util.charHelpers.GemstoneUtils;
+import com.mylk.charmonium.util.charHelpers.TunnelUtils;
 import com.mylk.charmonium.util.charHelpers.VectorUtils;
 import com.mylk.charmonium.util.charHelpers.npcUtils;
 import com.mylk.charmonium.util.helper.Rotation;
@@ -31,7 +31,10 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityArmorStand;
 import net.minecraft.entity.item.EntityXPOrb;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.*;
+import net.minecraft.util.BlockPos;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.Vec3;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
@@ -39,65 +42,56 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
 import java.awt.*;
 import java.text.NumberFormat;
-import java.util.*;
 import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static net.minecraftforge.fml.common.eventhandler.EventPriority.HIGHEST;
 
 public class
-GemstoneMacro extends AbstractMacro {
-    private enum State { NONE, UPDATE, GET_GEMSTONE, MINE, TELEPORT, WAIT, FALLEN, FALLEN_RECOVER, KILL }
-    private enum TeleportState { NONE }
+TunnelsMacro extends AbstractMacro {
+    private enum State { NONE, UPDATE, GET_GEMSTONE, MINE, TELEPORT, WALK, AT_SPAWN, WAIT, INCREASE, ADJUST }
 
     private static State currentState = State.NONE;
     private final RotationHandler rotation = RotationHandler.getInstance();
     public static BlockPos targetGem;
     private BlockPos nextWaypoint;
-    private static GemstoneMacro instance;
+    private static TunnelsMacro instance;
 
     private final Timer stuckMining = new Timer();
     private final Timer rotatingWait = new Timer();
     private final Timer teleportWait = new Timer();
-    private final Timer recoveryWait = new Timer();
     private final Timer itemSwap = new Timer();
     private final Timer tpStuckTimer = new Timer();
     private final Timer breakTimer = new Timer();
-    private final Timer diaGobTimer = new Timer();
-    private final Timer attackDelay = new Timer();
-    private final Timer noKillTimer = new Timer();
 
     private static float emptyTeleport = 0;
     private final Set<BlockPos> excludedBlocks = new HashSet<>();
     private int currentWaypoint = -1;
     private boolean refueling = false;
     public static boolean usingSpeed = false;
-    private boolean diaGobSpawned = false;
     public static String currentTool = "";
     private Vec3 rotPos = new Vec3(0, 0, 0);
     private Vec3 teleportRotPos = new Vec3(0, 0, 0);
     public static boolean tping = false;
+    public static boolean atSpawn = false;
     public static boolean stopChecks = false;
     public static boolean pickaxeSkillReady = true;
     public static boolean miningSpeedActive = false;
-    public static Entity target;
-    public static Entity targetStand;
 
     private static List<AOTVWaypointsStructs.Waypoint> waypoints;
 
-    private static final List<String> autoKillMobs = Arrays.asList("Yog");
-
-    public static GemstoneMacro getInstance() {
+    public static TunnelsMacro getInstance() {
         if (instance == null) {
-            instance = new GemstoneMacro();
+            instance = new TunnelsMacro();
         }
         return instance;
     }
 
     @Override
     public void onEnable() {
-        Config.MacroEnum crop = Config.MacroEnum.GEMSTONE;
+        Config.MacroEnum crop = Config.MacroEnum.TUNNELS;
         resetState();
         LogUtils.sendDebug("Macro: " + crop);
         MacroHandler.getInstance().setCrop(crop);
@@ -109,8 +103,8 @@ GemstoneMacro extends AbstractMacro {
     private void resetState() {
         currentState = State.NONE;
         targetGem = null;
-        GemstoneUtils.possibleBreaks.clear();
-        GemstoneUtils.currentlyPossibleToSee.clear();
+        TunnelUtils.possibleBreaks.clear();
+        TunnelUtils.currentlyPossibleToSee.clear();
         excludedBlocks.clear();
         rotPos =new Vec3(0, 0, 0);
         teleportRotPos = new Vec3(0, 0, 0);
@@ -119,54 +113,133 @@ GemstoneMacro extends AbstractMacro {
         rotation.reset();
         resetTimers();
         tping = false;
-        diaGobSpawned = false;
         usingSpeed = false;
-        target = null;
-        targetStand = null;
         stopChecks = false;
+        atSpawn = false;
         currentTool = Config.gemstoneTool;
         waypoints = Charmonium.aotvWaypoints.getSelectedRoute().waypoints;
     }
 
     private void resetTimers() {
         stuckMining.reset();
-        diaGobTimer.reset();
         rotatingWait.reset();
         teleportWait.reset();
         tpStuckTimer.reset();
-        recoveryWait.reset();
         breakTimer.reset();
     }
 
     private void initializeWaypoint() {
-        BlockPos currentPos = BlockUtils.fromVecToBP(Charmonium.mc.thePlayer.getPositionVector().subtract(0, 1, 0));
-        currentWaypoint = IntStream.range(0, waypoints.size())
-                .filter(i -> new BlockPos(waypoints.get(i).x, waypoints.get(i).y, waypoints.get(i).z).equals(currentPos))
-                .findFirst()
-                .orElse(-1);
 
-        if (currentWaypoint == -1) {
-            Charmonium.sendMessage("Auto AOTV - You are not at a valid waypoint!");
-            MacroHandler.getInstance().disableMacro();
+        //Loop Process:
+        //step 1:
+        // check if at spawn
+        // if at spawn, do case AT_SPAWN:
+        // if not, walk to closest waypoint
+
+        // check umber
+        //  this needs to basically be adjusted so it checks if blocks are mined at the umber spots
+        //  then 'follow the route' of the closest unmined spot
+        //  if all spots are mined, swap lobbies with '/is' and '/warp camp'
+
+        // move to
+        //  after one is found, next function will use mix of teleport and walk to get to the spot
+
+        // mine
+        //  then mine umber
+
+        // check if next location is bedrock, if it is, skip it
+
+        // repeat from move to
+
+        //blocks to mine (these are umber blocks):
+        // minecraft:hardened_clay
+        // minecraft:hardened_clay, color: brown
+        // minecraft:double_stone_slab2, seamless: true, variant: red_sandstone
+
+        BlockPos currentPos = BlockUtils.fromVecToBP(Charmonium.mc.thePlayer.getPositionVector());
+        double closestDistance = Double.MAX_VALUE;
+        int closestWaypoint = -1;
+
+        for (int i = 0; i < waypoints.size(); i++) {
+            BlockPos waypointPos = new BlockPos(waypoints.get(i).x, waypoints.get(i).y, waypoints.get(i).z);
+            double distance = BlockUtils.distanceFromTo(currentPos, waypointPos);
+
+            if (distance <= 10 && distance < closestDistance) {
+                closestDistance = distance;
+                closestWaypoint = i;
+            }
+        }
+
+        if (closestWaypoint == -1) {
+            Charmonium.sendMessage("Auto AOTV - No valid waypoint found within 10 blocks!");
+            mc.thePlayer.sendChatMessage("/warp camp");
+            currentState = State.AT_SPAWN;
+            currentWaypoint = 0;
+            atSpawn = true;
+            // MacroHandler.getInstance().disableMacro();
+        } else {
+            currentWaypoint = closestWaypoint;
+            Charmonium.sendMessage("Auto AOTV - Closest waypoint found: " + currentWaypoint);
+            currentState = State.NONE;
+            atSpawn = false;
+            MacroHandler.walkTo(new BlockPos(waypoints.get(currentWaypoint).x, waypoints.get(currentWaypoint).y + 1, waypoints.get(currentWaypoint).z));
         }
     }
 
     public void invokeState() {
         if (mc.thePlayer == null || mc.theWorld == null) return;
 
-        int heightCheckY = waypoints.get(currentWaypoint).y - 2;
-
-        if (Config.autoKillGems) {
-            handleAutoKill(heightCheckY);
-        }
-
         switch (currentState) {
+            case ADJUST:
+                if (!MacroHandler.walker.isDone()) return;
+                if (mc.thePlayer.getPositionVector().distanceTo(new Vec3(waypoints.get(currentWaypoint).x + 0.5, waypoints.get(currentWaypoint).y + 1, waypoints.get(currentWaypoint).z + 0.5)) < 0.7) {
+                    currentState = State.INCREASE;
+                }
+                if (mc.thePlayer.getPositionVector().distanceTo(new Vec3(waypoints.get(currentWaypoint).x + 0.5, waypoints.get(currentWaypoint).y + 1, waypoints.get(currentWaypoint).z + 0.5)) > 4) {
+                    Charmonium.sendMessage("Adjusting w/ walk to: " + waypoints.get(currentWaypoint).x + " " + waypoints.get(currentWaypoint).y + " " + waypoints.get(currentWaypoint).z);
+                    MacroHandler.walkTo(new BlockPos(waypoints.get(currentWaypoint).x, waypoints.get(currentWaypoint).y + 1, waypoints.get(currentWaypoint).z));
+                } else {
+                    BlockPos waypoint = new BlockPos(waypoints.get(currentWaypoint).x, waypoints.get(currentWaypoint).y + 0.5, waypoints.get(currentWaypoint).z);
+                    KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindAttack, false);
+                    currentTool = "Aspect of the";
+                    if (!rotation.isRotating()) {
+                        Rotation newRot = rotation.getRotation(waypoint);
+                        if (newRot != null) {
+                            stopChecks = true;
+                            rotation.easeTo(new RotationConfiguration(newRot, GemstoneDelaysPage.gemstoneTeleportRotDelay, null));
+                            if (!rotatingWait.isScheduled()) rotatingWait.schedule();
+                            if (!rotatingWait.hasPassed(GemstoneDelaysPage.gemstoneTeleportDelay)) return;
+                            KeyBindUtils.rightClick();
+                            Charmonium.sendMessage("Adjusted w/ AOTV to " + currentWaypoint);
+                        }
+                    }
+                }
+                break;
+            case INCREASE:
+                Charmonium.sendMessage("Increasing currentWaypoint");
+                currentWaypoint = (currentWaypoint == waypoints.size() - 1) ? 0 : currentWaypoint + 1;
+                currentState = State.NONE;
+                break;
             case NONE:
+                stopChecks = false;
                 currentState = State.UPDATE;
                 teleportRotPos = new Vec3(0, 0, 0);
                 break;
+            case AT_SPAWN:
+                if (Charmonium.mc.thePlayer.getPositionVector().distanceTo(new Vec3(0, 128, 200)) > 5) return;
+
+                Charmonium.sendMessage("Arrived at camp base");
+
+                if (MacroHandler.walker.isDone() && atSpawn) {
+                    atSpawn = false;
+                    MacroHandler.walkTo(new BlockPos(waypoints.get(currentWaypoint).x, waypoints.get(currentWaypoint).y + 1, waypoints.get(currentWaypoint).z));
+                    currentWaypoint++;
+                    currentState = State.NONE;
+                }
             case UPDATE:
-                handleUpdateState(heightCheckY);
+                if (MacroHandler.walker.isDone()) {
+                    handleUpdateState();
+                }
                 break;
             case GET_GEMSTONE:
                 handleGetGemstoneState();
@@ -175,53 +248,37 @@ GemstoneMacro extends AbstractMacro {
                 handleMineState();
                 break;
             case TELEPORT:
-                handleTeleportState();
+                currentState = State.WALK;
+                //handleTeleportState();
                 break;
             case WAIT:
                 handleWaitState();
                 break;
-            case FALLEN:
-                handleFallenState();
-                break;
-            case FALLEN_RECOVER:
-                handleFallenRecoverState();
-                break;
-            case KILL:
-                handleKillState();
-                break;
-        }
-    }
+            case WALK:
+                if (MacroHandler.walker.isDone()) {
+//                    if (!checks()) {
+//                        Charmonium.sendMessage("Failed walk checks");
+//                        tpStuckTimer.reset();
+//                        rotatingWait.reset();
+//                        teleportWait.schedule();
+//                        currentState = State.GET_GEMSTONE;
+//                        return;
+//                    }
 
-    private void handleAutoKill(int heightCheckY) {
-        List<Entity> entities = getEntities();
-        if (!entities.isEmpty() && target == null) {
-            Optional<Entity> optionalEntity = entities.stream()
-                    .min(Comparator.comparingDouble(entity -> entity.getDistanceToEntity(mc.thePlayer)));
-
-            if (optionalEntity.isPresent()) {
-                Entity entity = optionalEntity.get();
-                if (entity.getPosition().getY() >= heightCheckY) {
-                    targetStand = entity;
-                    target = npcUtils.getEntityCuttingOtherEntity(targetStand, null);
-                    noKillTimer.schedule();
-                    currentState = State.KILL;
-                    Charmonium.sendMessage("Found Yog...");
+                    Charmonium.sendMessage("Walking to: " + waypoints.get(currentWaypoint).x + " " + waypoints.get(currentWaypoint).y + " " + waypoints.get(currentWaypoint).z);
+                    MacroHandler.walkTo(new BlockPos(waypoints.get(currentWaypoint).x, waypoints.get(currentWaypoint).y + 1, waypoints.get(currentWaypoint).z));
+                    currentState = State.ADJUST;
                 }
-            }
+                break;
         }
     }
 
-    private void handleUpdateState(int heightCheckY) {
-        if (!recoveryWait.hasPassed(600)) return;
-        if (mc.thePlayer.getPosition().getY() < heightCheckY && recoveryWait.hasPassed(6500)) {
-            currentState = State.FALLEN;
-            return;
-        }
-        if (GemstoneUtils.possibleBreaks.isEmpty()) {
+    private void handleUpdateState() {
+        if (TunnelUtils.possibleBreaks.isEmpty()) {
             handleEmptyPossibleBreaks();
         } else {
-            GemstoneUtils.getAllBlocks();
-            GemstoneUtils.updateListData((HashSet<BlockPos>) excludedBlocks);
+            TunnelUtils.getAllBlocks();
+            TunnelUtils.updateListData((HashSet<BlockPos>) excludedBlocks);
             if (!checks()) {
                 currentState = State.GET_GEMSTONE;
             }
@@ -241,24 +298,25 @@ GemstoneMacro extends AbstractMacro {
         } else {
             excludedBlocks.clear();
         }
-        GemstoneUtils.getAllBlocks();
+        TunnelUtils.getAllBlocks();
     }
 
     private void handleGetGemstoneState() {
         if (checks()) return;
-        if (GemstoneUtils.currentlyPossibleToSee.isEmpty()) {
-            Charmonium.sendMessage("§7§oNo gemstones found");
+        if (TunnelUtils.currentlyPossibleToSee.isEmpty()) {
+            Charmonium.sendMessage("§7§oNo umber found");
             return;
         }
-        targetGem = GemstoneUtils.currentlyPossibleToSee.get(0);
+        targetGem = TunnelUtils.currentlyPossibleToSee.get(0);
         if (targetGem == null) {
-            Charmonium.sendMessage("§7§oLooking for a gemstone [null]");
-            GemstoneUtils.currentlyPossibleToSee.clear();
+            Charmonium.sendMessage("§7§oLooking for a umber [null]");
+            TunnelUtils.currentlyPossibleToSee.clear();
             return;
         }
-        rotPos = GemstoneUtils.currentlyPossibleToSee.size() > 1
-                ? VectorUtils.getClosestHittableToNextBlock(targetGem, GemstoneUtils.currentlyPossibleToSee.get(1))
-                : VectorUtils.getRandomHittable(targetGem);
+//        rotPos = TunnelUtils.currentlyPossibleToSee.size() > 1
+//                ? VectorUtils.getClosestHittableToNextBlock(targetGem, TunnelUtils.currentlyPossibleToSee.get(1))
+//                : VectorUtils.getRandomHittable(targetGem);
+        rotPos = VectorUtils.getRandomHittable(targetGem);
         excludedBlocks.clear();
         breakTimer.schedule();
         stuckMining.reset();
@@ -268,12 +326,14 @@ GemstoneMacro extends AbstractMacro {
     private void handleMineState() {
         emptyTeleport = 0;
         currentTool = Config.gemstoneTool;
-        if (targetGem == null || Charmonium.mc.theWorld.getBlockState(targetGem).getBlock() == Blocks.air) {
+        if (targetGem == null || Charmonium.mc.theWorld.getBlockState(targetGem).getBlock() == Blocks.air || Charmonium.mc.theWorld.getBlockState(targetGem).getBlock() == Blocks.bedrock) {
             currentState = State.UPDATE;
+            KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindAttack, false);
             return;
         }
         if (rotPos == null || rotPos.equals(new Vec3(0, 0, 0))) {
             Charmonium.sendMessage("§7§orotPos is null or zero");
+            excludedBlocks.add(targetGem);
             targetGem = null;
             return;
         }
@@ -282,7 +342,7 @@ GemstoneMacro extends AbstractMacro {
             return;
         }
         checkMiningSpeedBoost();
-        if (GemstoneUtils.currentlyPossibleToSee.size() > 1 && Config.pingGlide != 0) {
+        if (TunnelUtils.currentlyPossibleToSee.size() > 1 && Config.pingGlide != 0) {
             checkProgress(targetGem);
         }
         if (!mc.thePlayer.getHeldItem().getDisplayName().contains(Config.gemstoneTool)) return;
@@ -308,6 +368,7 @@ GemstoneMacro extends AbstractMacro {
         KeyBindUtils.leftClick();
         KeyBindUtils.releaseAll();
         breakTimer.schedule();
+        currentState = State.UPDATE;
     }
 
     private boolean isValidRotation(Rotation rotation) {
@@ -321,10 +382,13 @@ GemstoneMacro extends AbstractMacro {
         if (!rotation.isRotating() && teleportRotPos.equals(new Vec3(0, 0, 0))) {
             teleportRotPos = VectorUtils.getClosestHittableToMiddleTeleport(waypoint);
             if (teleportRotPos == null) {
-                Charmonium.sendMessage("§7§oWaypoint isnt visible...");
+                Charmonium.sendMessage("§7§oWaypoint isnt visible... walking to it");
                 rotatingWait.reset();
                 teleportRotPos = new Vec3(0, 0, 0);
                 stopChecks = false;
+
+                currentState = State.WALK;
+
                 return;
             }
             rotation.easeTo(new RotationConfiguration(rotation.getRotation(teleportRotPos), GemstoneDelaysPage.gemstoneTeleportRotDelay, null));
@@ -346,7 +410,7 @@ GemstoneMacro extends AbstractMacro {
                 currentState = State.NONE;
             } else if (tpStuckTimer.hasPassed(5000) && !rotation.isRotating()) {
                 Charmonium.sendMessage("AOTV Macro - Path is not cleared. Block: " + movingObjectPosition.getBlockPos().toString() + " is on the way.");
-                MacroHandler.getInstance().disableMacro();
+                currentState = State.WALK;
             }
         } else if (movingObjectPosition != null) {
             Charmonium.sendMessage("AOTV Macro - Something is on the way!");
@@ -369,130 +433,15 @@ GemstoneMacro extends AbstractMacro {
         }
     }
 
-    private void handleFallenState() {
-        BlockPos checkWaypoint = new BlockPos(waypoints.get(currentWaypoint).x, waypoints.get(currentWaypoint).y, waypoints.get(currentWaypoint).z);
-        if (!mc.thePlayer.onGround) return;
-        if (GemstoneUtils.hasAnyLineOfSight(checkWaypoint)) {
-            Charmonium.sendMessage("§7§oYou have fallen, teleporting to waypoint " + currentWaypoint);
-            currentState = State.FALLEN_RECOVER;
-            recoveryWait.reset();
-            return;
-        }
-        Charmonium.sendMessage("§7§oCurrent isnt visible, trying again");
-        for (int i = 0; i < waypoints.size(); i++) {
-            BlockPos checkWaypoint2 = new BlockPos(waypoints.get(i).x, waypoints.get(i).y, waypoints.get(i).z);
-            if (GemstoneUtils.hasAnyLineOfSight(checkWaypoint2)) {
-                Charmonium.sendMessage("§7§oYou have fallen, teleporting to waypoint " + i);
-                currentWaypoint = i;
-                currentState = State.FALLEN_RECOVER;
-                recoveryWait.reset();
-                return;
-            }
-        }
-    }
-
-    private void handleFallenRecoverState() {
-        BlockPos fallenRecoverWaypoint = new BlockPos(waypoints.get(currentWaypoint).x, waypoints.get(currentWaypoint).y, waypoints.get(currentWaypoint).z);
-        BlockPos blockBelow = new BlockPos(mc.thePlayer.getPosition().getX(), mc.thePlayer.getPosition().getY() - 1, mc.thePlayer.getPosition().getZ());
-
-        if (blockBelow.equals(fallenRecoverWaypoint)) {
-            currentState = State.NONE;
-            return;
-        }
-
-        KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindAttack, false);
-        currentTool = "Aspect of the";
-
-        if (!rotation.isRotating() && teleportRotPos.equals(new Vec3(0, 0, 0))) {
-            teleportRotPos = VectorUtils.getClosestHittableToMiddleTeleport(fallenRecoverWaypoint);
-            rotation.easeTo(new RotationConfiguration(rotation.getRotation(teleportRotPos), 125, null));
-            if (!rotatingWait.isScheduled()) rotatingWait.schedule();
-        }
-
-        stopChecks = true;
-        KeyBindUtils.setKeyBindState(mc.gameSettings.keyBindSneak, true);
-
-        if (!rotatingWait.hasPassed(625)) return;
-
-        MovingObjectPosition movingRecoverObjectPosition = mc.thePlayer.rayTrace(55, 1);
-
-        if (movingRecoverObjectPosition != null && movingRecoverObjectPosition.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK) {
-            if (movingRecoverObjectPosition.getBlockPos().equals(fallenRecoverWaypoint)) {
-                KeyBindUtils.rightClick();
-                Charmonium.sendMessage("Fallen Recover - Teleported to waypoint " + currentWaypoint);
-                tping = true;
-                tpStuckTimer.reset();
-                rotatingWait.reset();
-                recoveryWait.schedule();
-                teleportRotPos = new Vec3(0, 0, 0);
-                currentState = State.NONE;
-            } else if (tpStuckTimer.hasPassed(5000) && !rotation.isRotating()) {
-                Charmonium.sendMessage("Fallen Recover - Path is not cleared. Block: " + movingRecoverObjectPosition.getBlockPos().toString() + " is on the way.");
-                MacroHandler.getInstance().disableMacro();
-            }
-        } else if (movingRecoverObjectPosition != null) {
-            Charmonium.sendMessage("Fallen Recover - Something is on the way!");
-            MacroHandler.getInstance().disableMacro();
-        }
-    }
-
-    private void handleKillState() {
-        if (noKillTimer.hasPassed(6000)) {
-            Charmonium.sendMessage("Stuck? Finding new");
-            resetMacroState();
-        }
-
-        if (target == null || targetStand == null || target instanceof EntityXPOrb || ((EntityLivingBase) target).getHealth() <= 1 || target.isDead) {
-            resetMacroState();
-            return;
-        }
-
-        boolean visible = PlayerUtils.entityIsVisible(target);
-
-        if (!visible) {
-            Charmonium.sendMessage("Something is blocking target, moving on...");
-            resetMacroState();
-        } else {
-            boolean targeted = npcUtils.entityIsTargeted(target);
-
-            if (target != null && !targeted) {
-                rotation.easeTo(new RotationConfiguration(rotation.getRotation(target.getPositionVector().add(new Vec3(0, target.height / 2, 0))), Config.getRandomRotationTime(), null));
-            }
-
-            assert target != null;
-
-            if (Config.SGAttackType == Config.SGAttackEnum.LEFT_CLICK.ordinal()) {
-                currentTool = Config.autoKillWGems;
-
-                if (Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target) <= Config.autoKillRGems) {
-                    if (attackDelay.hasPassed(100)) {
-                        KeyBindUtils.stopMovement();
-                        KeyBindUtils.onTick(mc.gameSettings.keyBindAttack);
-                        attackDelay.schedule();
-                    }
-                }
-            } else {
-                currentTool = Config.autoKillWGems;
-
-                if (Minecraft.getMinecraft().thePlayer.getDistanceToEntity(target) <= Config.autoKillRGems) {
-                    if (attackDelay.hasPassed(100)) {
-                        KeyBindUtils.stopMovement();
-                        KeyBindUtils.onTick(mc.gameSettings.keyBindUseItem);
-                        attackDelay.schedule();
-                    }
-                }
-            }
-        }
-    }
-
     private boolean checks() {
         if (Config.refuelWithAbiphone && fuelFilling.isRefueling()) {
             currentState = State.WAIT;
             return true;
         }
 
-        if (GemstoneUtils.currentlyPossibleToSee.isEmpty()) {
-            GemstoneUtils.possibleBreaks.clear();
+        if (TunnelUtils.currentlyPossibleToSee.isEmpty()) {
+            Charmonium.sendMessage("[checks]§7§oNo umber found");
+            TunnelUtils.possibleBreaks.clear();
 
             if (!teleportWait.hasPassed(2500)) return true;
 
@@ -522,12 +471,6 @@ GemstoneMacro extends AbstractMacro {
                 break;
             }
         }
-    }
-
-    private void resetMacroState() {
-        currentState = State.NONE;
-        target = null;
-        targetStand = null;
     }
 
     public void checkMiningSpeedBoost() {
@@ -571,49 +514,6 @@ GemstoneMacro extends AbstractMacro {
         return targetSlot;
     }
 
-    private List<Entity> getEntities() {
-        return mc.theWorld.getEntitiesInAABBexcluding(mc.thePlayer,
-                        mc.thePlayer.getEntityBoundingBox().expand(Config.autoKillRGems, Config.autoKillRGems / 2, Config.autoKillRGems),
-                        e -> e instanceof EntityArmorStand)
-                .stream()
-                .filter(this::isValidTarget)
-                .filter(PlayerUtils::entityIsVisible)
-                .collect(Collectors.toList());
-    }
-
-    private boolean isValidTarget(Entity entity) {
-        double distance = entity.getDistanceToEntity(mc.thePlayer);
-        double verticalDifference = mc.thePlayer.posY - entity.posY;
-        return distance <= Config.autoKillRGems
-                && !entity.getName().contains(mc.thePlayer.getName())
-                && !entity.isDead
-                && ((EntityLivingBase) entity).getHealth() > 0
-                && autoKillMobs.stream().anyMatch(mob -> entity.getCustomNameTag().contains(mob))
-                && verticalDifference >= -2 && verticalDifference <= 4;
-    }
-
-    @SubscribeEvent
-    public void onBlockChange(BlockChangeEvent event) {
-        if (mc.thePlayer == null || mc.theWorld == null) return;
-
-        if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.GEMSTONE) return;
-
-        BlockPos pos = event.pos;
-
-        if (event.old.getBlock() == Blocks.cobblestone) {
-            if (event.update.getBlock() == Blocks.air) {
-                ArrayList<AOTVWaypointsStructs.Waypoint> Waypoints = Charmonium.aotvWaypoints.getSelectedRoute().waypoints;
-
-                AOTVWaypointsStructs.Waypoint wp = Waypoints.stream().filter(waypoint -> waypoint.x == pos.getX() && waypoint.y == pos.getY() && waypoint.z == pos.getZ()).findFirst().orElse(null);
-                if (wp != null) {
-                    Charmonium.sendMessage("Cobblestone at waypoint " + EnumChatFormatting.BOLD + wp.name + EnumChatFormatting.RESET + EnumChatFormatting.RED + " has been destroyed!");
-
-                    FailsafeManager.getInstance().possibleDetection(RotationFailsafe.getInstance());
-                }
-            }
-        }
-    }
-
     @SubscribeEvent(receiveCanceled=true, priority=HIGHEST)
     public void onMessageReceived(ClientChatReceivedEvent event) {
         String message = ChatFormatting.stripFormatting(event.message.getUnformattedText());
@@ -628,46 +528,26 @@ GemstoneMacro extends AbstractMacro {
             if (message.endsWith("Speed Boost has expired!")) {
                 miningSpeedActive = false;
             }
-
-            if (message.contains("Your pass to the Crystal Hollows will expire in 1 minute")) {
-                if (Config.autoRenewCrystalHollowsPass) {
-                    Charmonium.sendMessage("Auto renewing Crystal Hollows pass");
-                    mc.thePlayer.sendChatMessage("/purchasecrystallhollowspass");
-                }
-            }
-
-            if (message.contains("Diamond Goblin has spawned")) {
-                if (Config.alertDiamondGob) {
-                    diaGobSpawned = true;
-                }
-            }
         } catch (Exception ignored) {}
     }
 
-    @SubscribeEvent
-    public void onRenderOverlay(RenderGameOverlayEvent.Post event) {
-        if (mc.thePlayer == null || mc.theWorld == null) return;
-        if (event.type != RenderGameOverlayEvent.ElementType.ALL) return;
-
-        if (Config.alertDiamondGob && diaGobSpawned) {
-            if (!diaGobTimer.isScheduled()) diaGobTimer.schedule();
-            if (diaGobTimer.hasPassed(3000)) {
-                diaGobSpawned = false;
-                diaGobTimer.reset();
+    private boolean isNearWaypoint() {
+        for (AOTVWaypointsStructs.Waypoint waypoint : waypoints) {
+            if (Charmonium.mc.thePlayer.getPositionVector().distanceTo(new Vec3(waypoint.x, waypoint.y, waypoint.z)) < 5) {
+                return true;
             }
-
-            RenderUtils.drawCenterMiddleText("A DIAMOND GOBLIN", event, Color.CYAN);
         }
+        return false;
     }
 
     @SubscribeEvent
     public void onRender(RenderWorldLastEvent event) {
         if (mc.thePlayer == null || mc.theWorld == null) return;
 
-        if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.GEMSTONE) return;
+        if (!GameStateHandler.getInstance().atProperIsland() || !MacroHandler.getInstance().isMacroToggled() || MacroHandler.getInstance().getCrop() != Config.MacroEnum.TUNNELS) return;
 
-        if (!GemstoneUtils.currentlyPossibleToSee.isEmpty() && Config.highlightGemBlocks) {
-            for (BlockPos blockPos : GemstoneUtils.currentlyPossibleToSee) {
+        if (!TunnelUtils.currentlyPossibleToSee.isEmpty() && Config.highlightGemBlocks) {
+            for (BlockPos blockPos : TunnelUtils.currentlyPossibleToSee) {
 //                if (blockPos.equals(targetGem)) {
 //                    Charmonium.sendMessage("Not null");
 //                    RenderUtils.drawBlockBox(targetGem, new Color(255, 0, 183, 120));
@@ -675,7 +555,7 @@ GemstoneMacro extends AbstractMacro {
 //                    return;
 //                }
 
-                RenderUtils.drawBlockBox(blockPos, new Color(32, 178, 170, 120));
+                RenderUtils.drawBlockBox(blockPos, new Color(93, 32, 178, 120));
             }
         }
 
@@ -690,7 +570,7 @@ GemstoneMacro extends AbstractMacro {
     private static String[] drawMaxSkillInfo() {
         return new String[]{
                 "§r§lStats:",
-                "§rMacro: §fGemstone Miner",
+                "§rMacro: §fTunnels Miner",
                 "§rTime: §f" + getTimeString(),
                 "§rMAX SKILL",
                 "§rState: §f" + currentState.name()
@@ -706,7 +586,7 @@ GemstoneMacro extends AbstractMacro {
 
         return new String[]{
                 "§r§lStats:",
-                "§rMacro: §fGemstone Miner",
+                "§rMacro: §fTunnels Miner",
                 "§rTime: §f" + getTimeString(),
                 "§rXP Earned: §f" + formatNumber(xpToShow) + " [" + formatNumber(xpPerHour) + "/hr]",
                 "§rTime til' Lvl. " + nextLevel + ": §f" + SkillTracker.getTimeBetween(0, xpLeft / (xpPerHour / 3600.0)),
@@ -717,7 +597,7 @@ GemstoneMacro extends AbstractMacro {
     private static String[] drawDefaultInfo() {
         return new String[]{
                 "§r§lStats:",
-                "§rMacro: §fGemstone Miner",
+                "§rMacro: §fTunnels Miner",
                 "§rTime: §f" + getTimeString(),
                 "§rOpen '/skills' to track xp",
                 "§rState: §f" + currentState.name()

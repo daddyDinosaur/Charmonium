@@ -48,6 +48,8 @@ public class macroHud extends TextHud{
                 macroLines = FishingMacro.drawInfo();
             }  else if (MacroHandler.getInstance().getCrop() == Config.MacroEnum.GEMSTONE) {
                 macroLines = GemstoneMacro.drawInfo();
+            } else if (MacroHandler.getInstance().getCrop() == Config.MacroEnum.TUNNELS) {
+                macroLines = TunnelsMacro.drawInfo();
             }
 
             lines.addAll(Arrays.asList(macroLines));

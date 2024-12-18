@@ -2,6 +2,7 @@ package com.mylk.charmonium.handler;
 
 import com.mylk.charmonium.event.MotionUpdateEvent;
 import com.mylk.charmonium.macro.impl.GemstoneMacro;
+import com.mylk.charmonium.macro.impl.TunnelsMacro;
 import com.mylk.charmonium.mixin.client.MinecraftAccessor;
 import com.mylk.charmonium.util.AngleUtils;
 import com.mylk.charmonium.util.BlockUtils;
@@ -79,6 +80,16 @@ public class RotationHandler {
 
         if ((neededChange.getYaw() > 360 || neededChange.getYaw() < -360) && GemstoneMacro.targetGem != null) {
             GemstoneMacro.targetGem = null;
+            return;
+        }
+
+        if ((neededChange.getPitch() > 360 || neededChange.getPitch() < -360) && TunnelsMacro.targetGem != null) {
+            TunnelsMacro.targetGem = null;
+            return;
+        }
+
+        if ((neededChange.getYaw() > 360 || neededChange.getYaw() < -360) && TunnelsMacro.targetGem != null) {
+            TunnelsMacro.targetGem = null;
             return;
         }
 

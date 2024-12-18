@@ -2,15 +2,21 @@ package com.mylk.charmonium.feature.impl.charMods;
 
 import com.mojang.realmsclient.gui.ChatFormatting;
 import com.mylk.charmonium.Charmonium;
+import com.mylk.charmonium.command.Commands;
 import com.mylk.charmonium.config.Config;
 import com.mylk.charmonium.handler.GameStateHandler;
+import com.mylk.charmonium.util.RenderUtils;
+import net.minecraft.block.BlockStainedGlass;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.EnumDyeColor;
 import net.minecraft.util.BlockPos;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -85,6 +91,16 @@ public class replaceDiorite {
         dioriteReplacer();
     }
 
+    @SubscribeEvent
+    public void onRender(RenderWorldLastEvent event) {
+        if (Charmonium.mc.thePlayer == null || Charmonium.mc.theWorld == null) return;
+
+        if (Commands.currentPath == null || Commands.currentPath.isEmpty()) return;
+        for (BlockPos pos : Commands.currentPath) {
+            RenderUtils.drawBlockBox(pos, new Color(127, 255, 212, 120));
+        }
+    }
+
 //    @SubscribeEvent(priority = EventPriority.HIGHEST)
 //    public void onChatPacket(ReceivePacketEvent event) {
 //        if (!Config.replaceDiorite || !(event.packet instanceof S02PacketChat)) {
@@ -103,7 +119,7 @@ public class replaceDiorite {
 //    }
 
     private void setGlass(BlockPos pos) {
-        Charmonium.mc.theWorld.setBlockState(pos, Blocks.glass.getDefaultState(), 3);
+        Charmonium.mc.theWorld.setBlockState(pos, Blocks.stained_glass.getDefaultState().withProperty(BlockStainedGlass.COLOR, EnumDyeColor.PURPLE), 3);
     }
 
     private boolean isDiorite(BlockPos pos) {

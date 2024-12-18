@@ -5,6 +5,7 @@ import com.mylk.charmonium.failsafe.FailsafeManager;
 import com.mylk.charmonium.handler.MacroHandler;
 import com.mylk.charmonium.macro.impl.FishingMacro;
 import com.mylk.charmonium.macro.impl.GemstoneMacro;
+import com.mylk.charmonium.macro.impl.TunnelsMacro;
 import com.mylk.charmonium.util.helper.Clock;
 import net.minecraft.block.*;
 import net.minecraft.client.Minecraft;
@@ -118,6 +119,11 @@ public class PlayerUtils {
                         continue;
                     case GEMSTONE:
                         if (mc.thePlayer.inventoryContainer.inventorySlots.get(i).getStack().getDisplayName().contains(GemstoneMacro.currentTool)) {
+                            return i - 36;
+                        }
+                        continue;
+                    case TUNNELS:
+                        if (mc.thePlayer.inventoryContainer.inventorySlots.get(i).getStack().getDisplayName().contains(TunnelsMacro.currentTool)) {
                             return i - 36;
                         }
                         continue;

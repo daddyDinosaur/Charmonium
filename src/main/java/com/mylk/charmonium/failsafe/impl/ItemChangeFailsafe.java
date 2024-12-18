@@ -9,6 +9,7 @@ import com.mylk.charmonium.feature.impl.MovRecPlayer;
 import com.mylk.charmonium.handler.MacroHandler;
 import com.mylk.charmonium.macro.impl.GemstoneMacro;
 import com.mylk.charmonium.macro.impl.SlayerMacro;
+import com.mylk.charmonium.macro.impl.TunnelsMacro;
 import com.mylk.charmonium.macro.impl.misc.Maddoxer;
 import com.mylk.charmonium.macro.impl.misc.fuelFilling;
 import com.mylk.charmonium.util.KeyBindUtils;
@@ -85,6 +86,8 @@ public class ItemChangeFailsafe extends Failsafe {
                 !GemstoneMacro.stopChecks &&
                 !fuelFilling.isRefueling() &&
                 !GemstoneMacro.usingSpeed &&
+                !TunnelsMacro.usingSpeed &&
+                !TunnelsMacro.stopChecks &&
                 !(farmingTool.getItem() instanceof ItemAxe) &&
                 !(farmingTool.getItem() instanceof ItemFishingRod) &&
                 !(farmingTool.getItem() instanceof ItemPickaxe) &&

@@ -12,6 +12,7 @@ import com.mylk.charmonium.feature.impl.*;
 import com.mylk.charmonium.macro.AbstractMacro;
 import com.mylk.charmonium.macro.impl.*;
 import com.mylk.charmonium.pathfinding.main.AStarPathFinder;
+import com.mylk.charmonium.pathfinding.main.AStarPathFinderImproved;
 import com.mylk.charmonium.pathfinding.utils.PathFinderConfig;
 import com.mylk.charmonium.pathfinding.walker.WalkerMain;
 import com.mylk.charmonium.util.BlockUtils;
@@ -56,7 +57,7 @@ public class MacroHandler {
     private boolean startingUp = false;
     public static BlockPos waypoint;
     public static List<Vec3> path;
-    public static AStarPathFinder finder = new AStarPathFinder();
+    public static AStarPathFinderImproved finder;
     public static WalkerMain walker = new WalkerMain();
     Runnable startCurrent = () -> {
         KeyBindUtils.stopMovement();
@@ -122,6 +123,10 @@ public class MacroHandler {
                 GameStateHandler.allowedIslands.add(GameStateHandler.Location.CRYSTAL_HOLLOWS);
                 GameStateHandler.islandWarp = "/warp ch";
                 return Macros.MACRO_GEMSTONE.getMacro();
+            case TUNNELS:
+                GameStateHandler.allowedIslands.add(GameStateHandler.Location.DWARVEN_MINES);
+                GameStateHandler.islandWarp = "/warp camp";
+                return Macros.MACRO_TUNNELS.getMacro();
             case SLAYER:
                 switch (Config.SlayerType) {
                     case 0:
@@ -381,8 +386,9 @@ public class MacroHandler {
                     BlockUtils.fromVecToBP(Charmonium.mc.thePlayer.getPositionVector().addVector(-0.5, 0, -0.5)),
                     BlockUtils.fromVecToBP(entity.getPositionVector())
             );
+            finder = new AStarPathFinderImproved(newConfig);
 
-            path = finder.fromClassToVec(finder.run(newConfig));
+            path = finder.fromClassToVec(finder.findPath());
             walker.run(path, true, false, 2);
         }).start();
     }
@@ -394,8 +400,9 @@ public class MacroHandler {
                     BlockUtils.fromVecToBP(Charmonium.mc.thePlayer.getPositionVector().addVector(-0.5, 0, -0.5)),
                     pos
             );
+            finder = new AStarPathFinderImproved(newConfig);
 
-            path = finder.fromClassToVec(finder.run(newConfig));
+            path = finder.fromClassToVec(finder.findPath());
             walker.run(path, true, false, 2);
         }).start();
     }
@@ -413,8 +420,9 @@ public class MacroHandler {
                     startingPos,
                     waypoint
             );
+            finder = new AStarPathFinderImproved(newConfig);
 
-            List<Vec3> path = finder.fromClassToVec(finder.run(newConfig));
+            List<Vec3> path = finder.fromClassToVec(finder.findPath());
             walker.run(path, true, false, 2);
         }).start();
     }
@@ -425,6 +433,7 @@ public class MacroHandler {
         MACRO_ICE_WALKER(IceWalkerMacro.class),
         MACRO_SLAYER_AURA(SlayerAura.class),
         MACRO_GEMSTONE(GemstoneMacro.class),
+        MACRO_TUNNELS(TunnelsMacro.class),
         MACRO_SLAYERS(SlayerMacro.class),
         MACRO_FISHING(FishingMacro.class);
 

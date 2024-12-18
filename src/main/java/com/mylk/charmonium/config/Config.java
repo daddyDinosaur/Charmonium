@@ -38,10 +38,11 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
     private transient static final String SLAYER_MACRO = "Slayer Macro";
     private transient static final String FISHING_MACRO = "Fishing Macro";
     private transient static final String GEMSTONE_MACRO = "Gemstone Macro";
+    private transient static final String TUNNEL_MACRO = "Tunnel Macro";
 
     //<editor-fold desc="GENERAL">
     public enum MacroEnum {
-        NONE, FORAGING, ICE_WALKER, SLAYER_AURA, SLAYER, FISHING, GEMSTONE
+        NONE, FORAGING, ICE_WALKER, SLAYER_AURA, SLAYER, FISHING, GEMSTONE, TUNNELS
     }
 
     public enum FailsafeException {
@@ -59,7 +60,8 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
                     "Slayer Aura", // 3
                     "Slayers", // 4
                     "Fishing", // 5
-                    "Gemstone" // 6
+                    "Gemstone", // 6
+                    "Tunnels" // 7
             }
     )
     public static int SMacroType = 0;
@@ -75,11 +77,11 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
             exceptions.add(FailsafeException.BEDROCK_CAGE_CHECK);
         }
 
-        if (getMacro() == MacroEnum.SLAYER || getMacro() == MacroEnum.FISHING || getMacro() == MacroEnum.GEMSTONE) {
+        if (getMacro() == MacroEnum.SLAYER || getMacro() == MacroEnum.FISHING || getMacro() == MacroEnum.GEMSTONE || getMacro() == MacroEnum.TUNNELS) {
             exceptions.add(FailsafeException.ROTATION_CHECK);
         }
 
-        if (getMacro() == MacroEnum.SLAYER || getMacro() == MacroEnum.FISHING || getMacro() == MacroEnum.GEMSTONE) {
+        if (getMacro() == MacroEnum.SLAYER || getMacro() == MacroEnum.FISHING || getMacro() == MacroEnum.GEMSTONE || getMacro() == MacroEnum.TUNNELS) {
             exceptions.add(FailsafeException.TELEPORT_CHECK);
         }
 
@@ -318,6 +320,10 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
                 return null;
         }
     }
+
+    //================================================================================================
+
+    //================================================================================================
 
     public enum SA_AttackEnum {
         LEFT_CLICK,
@@ -1226,31 +1232,31 @@ public class Config extends cc.polyfrost.oneconfig.config.Config {
         this.hideIf("SlayerAuraType", () -> getMacro() != MacroEnum.SLAYER_AURA);
 
         this.hideIf("glassPanesFullBlock", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("aotvWaypointsPage", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("pingGlide", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("gemstoneDelays", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("gemstoneTool", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("aotvShowRouteLines", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("aotvShowNumber", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("aotvHighlightRouteBlocks", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("refuelWithAbiphone", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("aotvWaypointsPage", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("pingGlide", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("gemstoneDelays", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("gemstoneTool", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("aotvShowRouteLines", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("aotvShowNumber", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("aotvHighlightRouteBlocks", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("refuelWithAbiphone", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
         this.hideIf("autoKillGems", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("highlightGemBlocks", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("highlightGemBlocks", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
         this.hideIf("autoKillWGems", () -> !autoKillGems || getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("autoKillRGems", () -> !autoKillGems || getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("SGAttackType", () -> !autoKillGems || getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("refuelThreshold", () -> !refuelWithAbiphone || getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("typeOfFuelIndex", () -> !refuelWithAbiphone || getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("blueCheeseOmeletteToggle", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("useMiningSpeedBoost", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("refuelThreshold", () -> !refuelWithAbiphone || (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("typeOfFuelIndex", () -> !refuelWithAbiphone || (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("blueCheeseOmeletteToggle", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("useMiningSpeedBoost", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
         this.hideIf("glassFilter", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("gemstoneSackCompactorClickDelay", () -> !gemstoneSackCompactor);
         this.hideIf("gemstoneSackCompactor", () -> getMacro() != MacroEnum.GEMSTONE);
         this.hideIf("alertDiamondGob", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("gemstoneStuckDelay", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("gemstoneTeleportDelay", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("gemstoneTeleportRotDelay", () -> getMacro() != MacroEnum.GEMSTONE);
-        this.hideIf("gemstoneRotationDelay", () -> getMacro() != MacroEnum.GEMSTONE);
+        this.hideIf("gemstoneStuckDelay", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("gemstoneTeleportDelay", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("gemstoneTeleportRotDelay", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
+        this.hideIf("gemstoneRotationDelay", () -> (getMacro() != MacroEnum.GEMSTONE && getMacro() != MacroEnum.TUNNELS));
 
         this.hideIf("scanRange", () -> !isAllowed("scanRange"));
         this.hideIf("shiftWhenKill", () -> !isAllowed("shiftWhenKill"));

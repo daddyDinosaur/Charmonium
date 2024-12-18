@@ -20,7 +20,10 @@ public class Costs {
   }
 
   public static double calculateHCost(BlockNodeClass nodeClass, BlockPos finalBlock) {
-    return BlockUtils.distanceFromTo(nodeClass.blockPos, finalBlock);
+    double dx = Math.abs(nodeClass.blockPos.getX() - finalBlock.getX());
+    double dy = Math.abs(nodeClass.blockPos.getY() - finalBlock.getY());
+    double dz = Math.abs(nodeClass.blockPos.getZ() - finalBlock.getZ());
+    return Math.max(dx, Math.max(dy, dz)) + (Math.sqrt(3) - 1) * Math.min(dx, Math.min(dy, dz));
   }
 
   public static double getSlabCost(BlockNodeClass block) {
@@ -90,10 +93,6 @@ public class Costs {
   public static double calculateSurroundingsDoubleCost(BlockPos block) {
     Iterable<BlockPos> blocks = BlockPos.getAllInBox(block.up().up().add(-2, -1, -2), block.add(2, 1, 2));
     return BlockUtils.amountNonAir(blocks) * SURROUNDINGS_COST_MULTIPLIER;
-  }
-
-  public static double getBreakCost(BlockPos block) {
-    return BlockUtils.getBlockType(block).getBlockHardness(Charmonium.mc.theWorld, block) * 5;
   }
 
   public static double walkCost() {

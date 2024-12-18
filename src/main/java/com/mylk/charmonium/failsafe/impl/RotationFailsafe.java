@@ -13,10 +13,7 @@ import com.mylk.charmonium.handler.BaritoneHandler;
 import com.mylk.charmonium.handler.GameStateHandler;
 import com.mylk.charmonium.handler.MacroHandler;
 import com.mylk.charmonium.handler.RotationHandler;
-import com.mylk.charmonium.macro.impl.FishingMacro;
-import com.mylk.charmonium.macro.impl.IceWalkerMacro;
-import com.mylk.charmonium.macro.impl.SlayerMacro;
-import com.mylk.charmonium.macro.impl.GemstoneMacro;
+import com.mylk.charmonium.macro.impl.*;
 import com.mylk.charmonium.util.AngleUtils;
 import com.mylk.charmonium.util.BlockUtils;
 import com.mylk.charmonium.util.LogUtils;
@@ -89,6 +86,7 @@ public class RotationFailsafe extends Failsafe {
                 FishingMacro.stuckInWater ||
                 SlayerMacro.killingBoss ||
                 GemstoneMacro.stopChecks ||
+                TunnelsMacro.stopChecks ||
                 Objects.requireNonNull(BlockUtils.getBlockState(blockBehindPlayer)).getBlock() == Blocks.wooden_slab ||
                 Objects.requireNonNull(BlockUtils.getBlockState(blockUnderPlayer)).getBlock() == Blocks.wooden_slab) &&
                 Config.getFailsafeExceptions().contains(Config.FailsafeException.ROTATION_CHECK)) {

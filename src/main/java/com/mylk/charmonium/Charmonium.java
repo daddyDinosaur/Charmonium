@@ -203,6 +203,7 @@ public class Charmonium {
         MinecraftForge.EVENT_BUS.register(IceWalkerMacro.getInstance());
         MinecraftForge.EVENT_BUS.register(SlayerAura.getInstance());
         MinecraftForge.EVENT_BUS.register(GemstoneMacro.getInstance());
+        MinecraftForge.EVENT_BUS.register(TunnelsMacro.getInstance());
         MinecraftForge.EVENT_BUS.register(SlayerMacro.getInstance());
         MinecraftForge.EVENT_BUS.register(slayerHandler.getInstance());
         MinecraftForge.EVENT_BUS.register(Maddoxer.getInstance());
