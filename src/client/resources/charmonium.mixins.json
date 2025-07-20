@@ -1,0 +1,28 @@
+{
+  "required": true,
+  "package": "com.charmonium.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AbstractClientPlayerEntityMixin",
+    "ChatInputSuggestorMixin",
+    "ChatScreenMixin",
+    "ClientPlayerEntityMixin",
+    "GameOptionsMixin",
+    "KeyboardMixin",
+    "MinecraftClientMixin",
+    "MixinClientPlayerEntity",
+    "ScreenMixin",
+    "WorldRendererMixin",
+    "interfaces.IClientPlayerEntity",
+    "interfaces.IMinecraftClient"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "mixins": [
+    "ClientConnectionMixin",
+    "EntityMixin",
+    "LivingEntityMixin",
+    "PlayerEntityMixin"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "required": false,
+  "package": "com.charmonium.mixin.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "SodiumLightDataAccessMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
