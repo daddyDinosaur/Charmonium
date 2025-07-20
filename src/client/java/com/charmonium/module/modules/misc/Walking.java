@@ -111,8 +111,8 @@ public class Walking extends Module implements TickListener, Render3DListener {
     @Override
     public void onRender(Render3DEvent event) {
         for (BlockPos pos : currentPath) {
-            Box box = new Box(pos.getX() + 0.1, pos.getY() + 0.1, pos.getZ() + 0.1,
-                    pos.getX() + 0.9, pos.getY() + 0.9, pos.getZ() + 0.9);
+            Box box = new Box(pos.getX() + 0.1, pos.getY(), pos.getZ() + 0.1,
+                    pos.getX() + 0.9, pos.getY() + 0.1, pos.getZ() + 0.9);
             Render3D.draw3DBox(event.GetMatrix(), event.getCamera(), box,
                     color.getValue(), lineThickness.getValue());
         }

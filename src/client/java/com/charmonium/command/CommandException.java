@@ -5,11 +5,15 @@ import java.io.Serial;
 public abstract class CommandException extends Exception {
     @Serial
     private static final long serialVersionUID = 1L;
-    protected Command cmd;
+    private final Command command;
 
-    public CommandException(Command cmd) {
-        this.cmd = cmd;
+    public CommandException(Command command) {
+        this.command = command;
     }
 
-    public abstract void PrintToChat();
+    public Command getCommand() {
+        return this.command;
+    }
+
+    public abstract void printToChat();
 }

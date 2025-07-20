@@ -69,17 +69,18 @@ public class KeyBindUtils {
             -90, mc.options.rightKey
     );
 
-    public static Set<KeyBinding> getMovementDirections(Vec3d from, Vec3d to) {
+    public static Set<KeyBinding> getMovementDirections(Vec3d orig, Vec3d dest) {
         Set<KeyBinding> keys = new HashSet<>();
-        double dx = to.x - from.x;
-        double dz = to.z - from.z;
+        if (mc.player == null) return keys;
 
-        float targetYaw = (float) Math.toDegrees(Math.atan2(dz, dx)) - 90f;
-        float yawDiff = MathHelper.wrapDegrees(targetYaw - mc.player.getYaw());
+        double dx = orig.x - dest.x;
+        double dz = orig.z - dest.z;
+        float requiredAngle = (float) (MathHelper.atan2(dx, -dz) * (180.0 / Math.PI));
+        float playerYaw = mc.player.getYaw();
+        float angleDifference = MathHelper.wrapDegrees(requiredAngle - playerYaw) * -1;
 
-        DIRECTION_MAP.forEach((angle, key) -> {
-            if (Math.abs(angle - yawDiff) < 67.5 ||
-                    Math.abs(angle - (yawDiff + 360)) < 67.5) {
+        DIRECTION_MAP.forEach((degree, key) -> {
+            if (Math.abs(degree - angleDifference) < 67.5 || Math.abs(degree - (angleDifference + 360.0)) < 67.5) {
                 keys.add(key);
             }
         });

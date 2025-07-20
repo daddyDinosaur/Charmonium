@@ -45,8 +45,13 @@ public class RotationManager implements TickListener, Render3DListener, SendPack
         this.dontRotate.reset();
         this.startTime = System.currentTimeMillis();
 
-        this.startRotation.setYaw(MC.player.getYaw());
-        this.startRotation.setPitch(MC.player.getPitch());
+        if (MC.player != null) {
+            this.startRotation.setYaw(MC.player.getYaw());
+            this.startRotation.setPitch(MC.player.getPitch());
+        } else {
+            this.startRotation.setYaw(0f);
+            this.startRotation.setPitch(0f);
+        }
 
         Rotation neededChange = getNeededChange(startRotation, to);
         this.targetRotation.setYaw(startRotation.getYaw() + neededChange.getYaw());
@@ -57,7 +62,7 @@ public class RotationManager implements TickListener, Render3DListener, SendPack
         float pythagoras = (float) Math.sqrt(absYaw * absYaw + absPitch * absPitch);
         float adjustedTime = getTime(pythagoras, time);
 
-        this.endTime = System.currentTimeMillis() + (long) Math.max(adjustedTime, 50 + Math.random() * 100);
+        this.endTime = System.currentTimeMillis() + (long) Math.max(adjustedTime, 50 + random.nextDouble() * 100);
         this.rotating = true;
     }
 

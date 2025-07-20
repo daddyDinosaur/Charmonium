@@ -14,6 +14,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.*;
@@ -35,8 +36,6 @@ public class Walker implements TickListener, Render3DListener {
     private static final long RECALCULATION_COOLDOWN = 5000;
     private List<Vec3d> recentPositions = new LinkedList<>();
     private static final int MAX_RECENT_POSITIONS = 30;
-    private long lastRotationTime = 0;
-    private static final long ROTATION_COOLDOWN = 400;
 
     public static float rotationTime = 500f;
     public static float rotationTimeRandomness = 300;
@@ -50,10 +49,10 @@ public class Walker implements TickListener, Render3DListener {
         Charmonium.getInstance().eventManager.AddListener(Render3DListener.class, this);
         state = walkState;
         curPath = new ArrayList<>(path);
-        curVec = BlockUtils.getCenteredVec(curPath.getFirst());
+        curVec = BlockUtils.getCenteredVec(curPath.get(0));
         curPath.remove(0);
         prev = null;
-        lastRotationTime = 0;
+        endBlock = curPath.isEmpty() ? curVec : curPath.get(curPath.size() - 1);
     }
 
     public void run(List<Vec3d> path, boolean walkState, boolean isShiftClose, double distToToShift) {
@@ -61,13 +60,12 @@ public class Walker implements TickListener, Render3DListener {
         Charmonium.getInstance().eventManager.AddListener(Render3DListener.class, this);
         state = walkState;
         curPath = new ArrayList<>(path);
-        endBlock = curPath.getLast();
-        curVec = BlockUtils.getCenteredVec(curPath.getFirst());
+        curVec = BlockUtils.getCenteredVec(curPath.get(0));
         curPath.remove(0);
         prev = null;
+        endBlock = curPath.isEmpty() ? curVec : curPath.get(curPath.size() - 1);
         distToShift = distToToShift;
         isShift = isShiftClose;
-        lastRotationTime = 0;
     }
 
     @Override
@@ -81,9 +79,7 @@ public class Walker implements TickListener, Render3DListener {
         assert mc.player != null;
         Vec3d currentPos = mc.player.getPos();
 
-        if (recentPositions.size() >= MAX_RECENT_POSITIONS) {
-            recentPositions.removeFirst();
-        }
+        if (recentPositions.size() >= MAX_RECENT_POSITIONS) recentPositions.removeFirst();
         recentPositions.add(currentPos);
 
         if (isOscillatingInBox()) {
@@ -113,53 +109,10 @@ public class Walker implements TickListener, Render3DListener {
             }
         }
 
-        handleRotation(currentPos);
-        handleMovement(currentPos);
-        handleSpecialActions();
-    }
-
-    private void handleRotation(Vec3d currentPos) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-
-        if (!mc.player.isOnGround() || rotation.isRotating()) return;
-
-        long currentTime = System.currentTimeMillis();
-        if (currentTime - lastRotationTime < ROTATION_COOLDOWN) return;
-
-        Vec3d rotationTarget = getOptimalRotationTarget(currentPos);
-        if (rotationTarget == null) return;
-
-        Rotation currentPlayerRotation = new Rotation(mc.player.getYaw(), mc.player.getPitch());
-        Rotation targetRotation = RotationManager.getRotation(rotationTarget);
-
-        float yawDiff = Math.abs(rotation.getNeededChange(currentPlayerRotation, targetRotation).getYaw());
-
-        if (yawDiff > 8) {
-            targetRotation.setPitch(Math.max(targetRotation.getPitch(), -15));
-            rotation.easeTo(targetRotation, getRandomRotationTime());
-            lastRotationTime = currentTime;
+        if (mc.player.isOnGround()) {
+            Rotation targetRot = RotationManager.getRotation(curVec);
+            rotation.easeTo(new Rotation(targetRot.getYaw(), 0f), getRandomRotationTime() * 2);
         }
-    }
-
-    private Vec3d getOptimalRotationTarget(Vec3d currentPos) {
-        if (endBlock == null) return curVec;
-
-        double distanceToEnd = BlockUtils.distanceFromTo(currentPos, endBlock);
-
-        if (distanceToEnd <= 3) {
-            return endBlock.add(0, 0.3, 0);
-        }
-
-        Vec3d lookAheadTarget = getLookAheadTarget();
-        if (lookAheadTarget != null) {
-            return lookAheadTarget.add(0, 0.2, 0);
-        }
-
-        return curVec.add(0, 0.1, 0);
-    }
-
-    private void handleMovement(Vec3d currentPos) {
-        MinecraftClient mc = MinecraftClient.getInstance();
 
         if (curPath.size() > 2 &&
                 BlockUtils.distanceFromToXZ(currentPos, curPath.get(1)) < 1.5 &&
@@ -174,15 +127,18 @@ public class Walker implements TickListener, Render3DListener {
 
         mc.player.setSprinting(true);
         KeyBindUtils.setKeyBindState(mc.options.jumpKey, isCloseToJump());
-    }
 
-    private void handleSpecialActions() {
         if (isShift) {
-            MinecraftClient mc = MinecraftClient.getInstance();
-            isShifting = BlockUtils.distanceFromTo(mc.player.getPos(), endBlock) < distToShift
-                    && mc.player.getPos().y == curVec.y;
+            isShifting = BlockUtils.distanceFromTo(mc.player.getPos(), endBlock) < distToShift &&
+                    mc.player.getPos().y == curVec.y;
         }
-        KeyBindUtils.setKeyBindState(MinecraftClient.getInstance().options.sneakKey, isShifting);
+        KeyBindUtils.setKeyBindState(mc.options.sneakKey, isShifting);
+
+        Vec3d lookTarget = getLookAheadTarget();
+        if (BlockUtils.distanceFromTo(currentPos, endBlock) > 1) {
+            Rotation targetRot = RotationManager.getRotation(lookTarget);
+            rotation.easeTo(new Rotation(targetRot.getYaw(), 0f), getRandomRotationTime() * 2);
+        }
     }
 
     private void nextBlock() {
@@ -200,7 +156,7 @@ public class Walker implements TickListener, Render3DListener {
         assert mc.player != null;
 
         if (prev != null &&
-                !BlockUtils.getBlockType(BlockUtils.fromVecToBP(curVec.add(0, -1, 0))).getDefaultState().isIn(BlockTags.SLABS)) {
+                !BlockUtils.getBlockType(BlockUtils.fromVecToBP(prev.add(0, -1, 0))).getDefaultState().isIn(BlockTags.SLABS)) {
             return (mc.player.getY() + 0.5 < curVec.y &&
                     !BlockUtils.getBlockType(BlockUtils.fromVecToBP(curVec.add(0, -1, 0))).getDefaultState().isIn(BlockTags.SLABS) &&
                     mc.player.isOnGround() &&
@@ -215,14 +171,13 @@ public class Walker implements TickListener, Render3DListener {
 
     private void removeUntil(Vec3d vec) {
         while (!curPath.isEmpty()) {
-            if (curPath.getFirst().equals(vec)) return;
-            curPath.removeFirst();
+            if (curPath.get(0).equals(vec)) return;
+            curPath.remove(0);
         }
     }
 
     private boolean isOscillatingInBox() {
         if (recentPositions.size() < MAX_RECENT_POSITIONS) return false;
-
         double totalMovement = 0;
         Vec3d previous = recentPositions.get(0);
         for (Vec3d current : recentPositions) {
@@ -288,7 +243,6 @@ public class Walker implements TickListener, Render3DListener {
                         .collect(Collectors.toList());
                 Walker walker = new Walker();
                 walker.run(newPath, true, false, 2);
-
             } else {
                 CharmoniumClient.sendMessage("Unable to get unstuck");
                 currentPath.clear();
@@ -300,11 +254,11 @@ public class Walker implements TickListener, Render3DListener {
     }
 
     private Vec3d getLookAheadTarget() {
-        int lookAhead = Math.min(3, curPath.size());
+        int lookAhead = Math.min(2, curPath.size()); // Only 3 ahead just like in 1.8.9 for optional lookahead
         if (lookAhead > 0) {
             Vec3d target = curPath.get(lookAhead - 1);
             double progress = BlockUtils.distanceFromTo(MinecraftClient.getInstance().player.getPos(), curVec) / 2.0;
-            return target.add(0, 0.2 * progress, 0);
+            return target.add(0, 0.5 * progress, 0);
         }
         return endBlock;
     }
@@ -312,7 +266,6 @@ public class Walker implements TickListener, Render3DListener {
     public void pause() {
         KeyBindUtils.getPathfindingControls().forEach(key ->
                 prevKeybinds.put(key, key.isPressed()));
-
         KeyBindUtils.stopMovement();
         state = false;
     }
@@ -328,7 +281,6 @@ public class Walker implements TickListener, Render3DListener {
         curPath = null;
         curVec = null;
         recentPositions.clear();
-        lastRotationTime = 0;
         Charmonium.getInstance().eventManager.RemoveListener(TickListener.class, this);
         Charmonium.getInstance().eventManager.RemoveListener(Render3DListener.class, this);
     }

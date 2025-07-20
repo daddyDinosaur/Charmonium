@@ -5,20 +5,18 @@ import com.charmonium.command.Command;
 import com.charmonium.command.InvalidSyntaxException;
 import com.charmonium.command.commands.*;
 import com.charmonium.settings.types.StringSetting;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 public class CommandManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(CommandManager.class);
     private final Map<String, Command> commands = new HashMap<>();
-    private final Deque<String> commandHistory = new ArrayDeque<>(50);
+    private final Deque<String> commandHistory = new ArrayDeque<>();
+    private static final int HISTORY_LIMIT = 50;
 
     public static StringSetting PREFIX = StringSetting.builder().id("char_prefix").displayName("Prefix")
             .defaultValue("/char").build();
@@ -61,9 +59,10 @@ public class CommandManager {
             return;
         }
 
-        try {
-            commandHistory.add(String.join(" ", input));
+        String rawMessage = "/" + String.join(" ", input);
+        addToHistory(rawMessage);
 
+        try {
             if (input.length < 2) {
                 CharmoniumClient.sendMessage("Usage: " + Formatting.LIGHT_PURPLE + "/char <command>");
                 return;
@@ -77,8 +76,19 @@ public class CommandManager {
                 command.runCommand(parameters);
             }
         } catch (InvalidSyntaxException e) {
-            e.PrintToChat();
+            e.printToChat();
         }
+    }
+
+    private void addToHistory(String message) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc != null && mc.inGameHud != null && mc.inGameHud.getChatHud() != null) {
+            mc.inGameHud.getChatHud().addToMessageHistory(message);
+        }
+        if (commandHistory.size() >= HISTORY_LIMIT) {
+            commandHistory.removeFirst();
+        }
+        commandHistory.addLast(message);
     }
 
     private void sendUnknownCommand(String commandName) {
