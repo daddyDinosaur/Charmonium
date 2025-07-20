@@ -39,6 +39,7 @@ dependencies {
 
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation 'it.unimi.dsi:fastutil:8.5.13'
 
 	modCompileOnly("maven.modrinth:sodium:${project.sodium_version}") { transitive = false }
 	modCompileOnly("maven.modrinth:lithium:${project.lithium_version}") { transitive = false }

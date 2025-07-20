@@ -16,14 +16,9 @@ public class CmdPathfind extends Command {
 
     @Override
     public void runCommand(String[] parameters) throws InvalidSyntaxException {
-        Charmonium.getInstance().rotationManager.easeTo(new Rotation(45.0f, -30.0f), 2500);
-
         if (parameters.length != 3) {
-            //Charmonium.getInstance().rotationManager.easeTo(new Rotation(45.0f, -30.0f), 2500);
             throw new InvalidSyntaxException(this);
         }
-
-        //mc.options.forwardKey.setPressed(false);
 
         Pathfind module = Charmonium.getInstance().moduleManager.pathfinding;
 

@@ -109,6 +109,7 @@ public class Utils extends Costs {
     }
 
     public static ReturnClass isAbleToInteract(BlockNodeClass node) {
+        if (canWalkOnStep(node)) return new ReturnClass(Collections.emptyList(), ActionTypes.WALK);
         if (canWalkOn(node)) return new ReturnClass(Collections.emptyList(), ActionTypes.WALK);
         if (canJumpOn(node)) return new ReturnClass(Collections.emptyList(), ActionTypes.JUMP);
         if (canFall(node)) return new ReturnClass(Collections.emptyList(), ActionTypes.FALL);
@@ -196,6 +197,20 @@ public class Utils extends Costs {
 
         return false;
     }
+
+    public static boolean canWalkOnStep(BlockNodeClass node) {
+        BlockPos block = node.getBlockPos();
+        BlockNodeClass parent = node.getParentOfBlock();
+        if (parent == null) return false;
+
+        int yDiff = block.getY() - parent.getBlockPos().getY();
+        if (yDiff == 1 && BlockUtils.isStepableUp(parent.getBlockPos(), block)) {
+            BlockPos above = block.up();
+            return BlockUtils.isBlockWalkable(block) && !BlockUtils.isBlockSolid(above);
+        }
+        return false;
+    }
+
 
     public static boolean isAllClearToY(int y1, int y2, BlockPos block) {
         boolean isGreater = y1 < y2;

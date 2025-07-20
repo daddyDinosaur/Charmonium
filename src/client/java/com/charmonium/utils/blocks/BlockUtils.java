@@ -64,8 +64,29 @@ public class BlockUtils {
         return new Vec3d(block.getX(), block.getY(), block.getZ());
     }
 
-    public static boolean isBlockWalkable(BlockPos block) {
-        Block blockType = getBlockType(block);
+    public static boolean isCarpet(BlockPos pos) {
+        Block block = getBlockType(pos);
+        return block == Blocks.WHITE_CARPET
+                || block == Blocks.ORANGE_CARPET
+                || block == Blocks.MAGENTA_CARPET
+                || block == Blocks.LIGHT_BLUE_CARPET
+                || block == Blocks.YELLOW_CARPET
+                || block == Blocks.LIME_CARPET
+                || block == Blocks.PINK_CARPET
+                || block == Blocks.GRAY_CARPET
+                || block == Blocks.LIGHT_GRAY_CARPET
+                || block == Blocks.CYAN_CARPET
+                || block == Blocks.PURPLE_CARPET
+                || block == Blocks.BLUE_CARPET
+                || block == Blocks.BROWN_CARPET
+                || block == Blocks.GREEN_CARPET
+                || block == Blocks.RED_CARPET
+                || block == Blocks.BLACK_CARPET;
+    }
+
+    public static boolean isBlockWalkable(BlockPos pos) {
+        if (isCarpet(pos)) return true;
+        Block blockType = getBlockType(pos);
         return blockType == Blocks.AIR ||
                 blockType == Blocks.POPPY ||
                 blockType == Blocks.SHORT_GRASS ||
@@ -85,6 +106,27 @@ public class BlockUtils {
                 blockType != Blocks.DANDELION &&
                 blockType != Blocks.LILAC &&
                 blockType != Blocks.BUBBLE_COLUMN;
+    }
+
+    public static boolean isStepableUp(BlockPos from, BlockPos to) {
+        if (to.getY() - from.getY() != 1) return false;
+        BlockPos blockBelow = to.down();
+        Block blockBelowType = getBlockType(blockBelow);
+        if (blockBelowType instanceof SlabBlock) {
+            BlockState state = getBlockState(blockBelow);
+            if (state.get(Properties.SLAB_TYPE) == SlabType.BOTTOM) return true;
+        }
+        if (blockBelowType instanceof StairsBlock) {
+            BlockState state = getBlockState(blockBelow);
+            Direction stairFacing = state.get(Properties.HORIZONTAL_FACING);
+            int dx = to.getX() - from.getX();
+            int dz = to.getZ() - from.getZ();
+            if ((dx != 0 && stairFacing.getAxis() == Direction.Axis.X && Math.signum(dx) == Math.signum(stairFacing.getVector().getX())) ||
+                    (dz != 0 && stairFacing.getAxis() == Direction.Axis.Z && Math.signum(dz) == Math.signum(stairFacing.getVector().getZ()))) {
+                return state.get(Properties.BLOCK_HALF) == BlockHalf.BOTTOM;
+            }
+        }
+        return false;
     }
 
     public static double distanceFromToXZ(BlockPos pos1, BlockPos pos2) {

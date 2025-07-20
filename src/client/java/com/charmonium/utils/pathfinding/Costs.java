@@ -9,7 +9,8 @@ import java.util.stream.StreamSupport;
 
 public class Costs {
     private static final double FALL_COST = 1.5;
-    private static final double JUMP_COST = 2.0;
+    private static final double JUMP_COST = 4.0;
+    private static final double WALK_COST = 1.0;
     private static final double SURROUNDINGS_COST_MULTIPLIER = 1.5;
 
     public static double calculateGCost(BlockNodeClass nodeClass, BlockPos startBlock) {
@@ -64,6 +65,7 @@ public class Costs {
     public static double getActionCost(ActionTypes action) {
         if (action == null) return 1;
         switch (action) {
+            case WALK: return WALK_COST;
             case FALL: return FALL_COST;
             case JUMP: return JUMP_COST;
             default: return 1;
@@ -94,9 +96,5 @@ public class Costs {
                 .filter(pos -> !BlockUtils.isBlockWalkable(pos))
                 .count();
         return nonAirCount * SURROUNDINGS_COST_MULTIPLIER;
-    }
-
-    public static double walkCost() {
-        return 1;
     }
 }

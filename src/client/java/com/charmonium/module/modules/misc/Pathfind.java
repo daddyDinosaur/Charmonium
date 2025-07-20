@@ -61,9 +61,9 @@ public class Pathfind extends Module implements Render3DListener {
         List<BlockNodeClass> path = pathFinder.findPath();
 
         if (path != null && !path.isEmpty()) {
-            currentPath = path.stream()
+            currentPath = new ArrayList<>(path.stream()
                     .map(BlockNodeClass::getBlockPos)
-                    .toList();
+                    .toList());
             CharmoniumClient.sendMessage("Path found! Length: " + currentPath.size() + " blocks");
             if (!Charmonium.getInstance().eventManager.isListenerRegistered(Render3DListener.class, this)) Charmonium.getInstance().eventManager.AddListener(Render3DListener.class, this);
         } else {
@@ -86,8 +86,8 @@ public class Pathfind extends Module implements Render3DListener {
         if (currentPath.isEmpty()) return;
 
         for (BlockPos pos : currentPath) {
-            Box box = new Box(pos.getX() + 0.1, pos.getY() + 0.1, pos.getZ() + 0.1,
-                    pos.getX() + 0.9, pos.getY() + 0.9, pos.getZ() + 0.9);
+            Box box = new Box(pos.getX() + 0.1, pos.getY(), pos.getZ() + 0.1,
+                    pos.getX() + 0.9, pos.getY() + 0.1, pos.getZ() + 0.9);
 
             Render3D.draw3DBox(event.GetMatrix(), event.getCamera(), box, color.getValue(),
                     lineThickness.getValue());

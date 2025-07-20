@@ -66,10 +66,10 @@ public class Walking extends Module implements TickListener, Render3DListener {
         List<BlockNodeClass> path = pathFinder.findPath();
 
         if (path != null && !path.isEmpty()) {
-            currentPath = path.stream()
+            currentPath = new ArrayList<>(path.stream()
                     .map(BlockNodeClass::getBlockPos)
-                    .toList();
-            pathVec = pathFinder.fromClassToVec(path);
+                    .toList());
+            pathVec = new ArrayList<>(pathFinder.fromClassToVec(path));
             isWalking = true;
             Charmonium.getInstance().eventManager.AddListener(TickListener.class, this);
             Charmonium.getInstance().eventManager.AddListener(Render3DListener.class, this);
