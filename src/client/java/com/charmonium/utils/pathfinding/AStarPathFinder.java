@@ -100,10 +100,8 @@ public class AStarPathFinder extends Utils {
         else if (actionType == ActionTypes.FALL) dist += 2.5;
 
         BlockPos toBelow = to.getBlockPos().down();
-        boolean isSlab = false;
         var state = BlockUtils.getBlockState(toBelow);
         if (actionType == ActionTypes.WALK && state != null && state.getBlock() instanceof SlabBlock && state.get(Properties.SLAB_TYPE) == SlabType.BOTTOM) {
-            isSlab = true;
             if (to.getBlockPos().getY() > from.getBlockPos().getY()) dist -= 5.0;
         }
         dist += getAdjacentSolidPenalty(to.getBlockPos()) * 3.5;

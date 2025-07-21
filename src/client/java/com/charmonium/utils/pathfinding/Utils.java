@@ -121,6 +121,10 @@ public class Utils extends Costs {
         BlockPos block = node.getBlockPos();
         BlockNodeClass parentBlock = node.getParentOfBlock();
         if (parentBlock == null) return false;
+
+        if (BlockUtils.isStairOrBottomSlab(parentBlock.getBlockPos()))
+            return false;
+
         double yDiff = block.getY() - parentBlock.getBlockPos().getY();
         BlockPos blockAbove1 = block.up();
         BlockPos blockBelow1 = block.down();

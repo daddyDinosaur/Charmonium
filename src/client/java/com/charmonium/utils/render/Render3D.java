@@ -226,26 +226,13 @@ public class Render3D {
                 .color(r, g, b, 1.0f).normal(entry, (float) normalized.x, (float) normalized.y, (float) normalized.z);
     }
 
-    /**
-     * Gets the interpolated position of the entity given a tick delta.
-     *
-     * @param entity Entity to get position of
-     * @param delta  Tick delta.
-     * @return Vec3d representing the interpolated position of the entity.
-     */
+
     public static Vec3d getEntityPositionInterpolated(Entity entity, float delta) {
         return new Vec3d(MathHelper.lerp(delta, entity.lastX, entity.getX()),
                 MathHelper.lerp(delta, entity.lastY, entity.getY()),
                 MathHelper.lerp(delta, entity.lastZ, entity.getZ()));
     }
 
-    /**
-     * Gets the difference between the interpolated position and
-     *
-     * @param entity Entity to get position of
-     * @param delta  Tick delta.
-     * @return Vec3d representing the interpolated position of the entity.
-     */
     public static Vec3d getEntityPositionOffsetInterpolated(Entity entity, float delta) {
         Vec3d interpolated = getEntityPositionInterpolated(entity, delta);
         return entity.getPos().subtract(interpolated);

@@ -304,4 +304,13 @@ public class BlockUtils {
         }
         return state.isAir();
     }
+
+    public static boolean isStairOrBottomSlab(BlockPos pos) {
+        BlockState state = getBlockState(pos.down());
+        if (state == null) return false;
+        Block block = state.getBlock();
+        if (block instanceof SlabBlock) return state.get(Properties.SLAB_TYPE) == SlabType.BOTTOM;
+        if (block instanceof StairsBlock) return state.get(Properties.BLOCK_HALF) == BlockHalf.BOTTOM;
+        return false;
+    }
 }
