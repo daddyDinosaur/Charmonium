@@ -2,7 +2,6 @@ package com.charmonium.utils.pathfinding;
 
 import com.charmonium.utils.blocks.BlockUtils;
 import net.minecraft.util.math.BlockPos;
-
 import java.util.*;
 
 public class Utils extends Costs {
@@ -38,10 +37,8 @@ public class Utils extends Costs {
             BlockPos ending,
             HashSet<BlockPos> addBroken
     ) {
-        // Copy parent's broken set to avoid mutation issues
         HashSet<BlockPos> brokenCopy = new HashSet<>(parent.getBroken());
         brokenCopy.addAll(addBroken);
-
         return new BlockNodeClass(
                 parent,
                 block,
@@ -54,38 +51,26 @@ public class Utils extends Costs {
     }
 
     public static List<BlockNodeClass> getBlocksAround(BlockNodeClass reference, BlockPos start, BlockPos end) {
-        List<BlockNodeClass> returnBlocks = new ArrayList<>();
+        List<BlockNodeClass> returnBlocks = new ArrayList<>(26);
         BlockPos refPos = reference.getBlockPos();
-
-        for (int x = -1; x <= 1; x++) {
-            for (int y = -1; y <= 1; y++) {
+        for (int x = -1; x <= 1; x++)
+            for (int y = -1; y <= 1; y++)
                 for (int z = -1; z <= 1; z++) {
-                    if (x == 0 && y == 0 && z == 0) continue;
+                    if ((x | y | z) == 0) continue;
                     BlockPos curBlock = refPos.add(x, y, z);
-                    if (!curBlock.equals(refPos)) {
-                        returnBlocks.add(getClassOfBlock(
-                                curBlock,
-                                reference,
-                                start,
-                                end,
-                                new HashSet<>(reference.getBroken())
-                        ));
-                    }
+                    if (!curBlock.equals(refPos))
+                        returnBlocks.add(getClassOfBlock(curBlock, reference, start, end, new HashSet<>(reference.getBroken())));
                 }
-            }
-        }
         return returnBlocks;
     }
 
     public static List<BlockNodeClass> retracePath(BlockNodeClass startNode, BlockNodeClass endNode) {
         List<BlockNodeClass> nodeClass = new ArrayList<>();
         BlockNodeClass currentNode = endNode;
-
         while (currentNode != null && currentNode.getParentOfBlock() != null && !currentNode.equals(startNode)) {
             nodeClass.add(currentNode);
             currentNode = currentNode.getParentOfBlock();
         }
-
         Collections.reverse(nodeClass);
         return nodeClass;
     }
@@ -93,19 +78,12 @@ public class Utils extends Costs {
     public static class ReturnClass {
         private final List<BlockPos> blocksToBreak;
         private final ActionTypes actionType;
-
         public ReturnClass(List<BlockPos> blocksToBreak, ActionTypes actionType) {
             this.blocksToBreak = Collections.unmodifiableList(blocksToBreak);
             this.actionType = actionType;
         }
-
-        public List<BlockPos> getBlocksToBreak() {
-            return blocksToBreak;
-        }
-
-        public ActionTypes getActionType() {
-            return actionType;
-        }
+        public List<BlockPos> getBlocksToBreak() { return blocksToBreak; }
+        public ActionTypes getActionType() { return actionType; }
     }
 
     public static ReturnClass isAbleToInteract(BlockNodeClass node) {
@@ -120,24 +98,18 @@ public class Utils extends Costs {
         BlockPos block = node.getBlockPos();
         BlockNodeClass parent = node.getParentOfBlock();
         if (parent == null) return false;
-
         double yDif = Math.abs(parent.getBlockPos().getY() - block.getY());
-
         BlockPos blockAbove1 = block.up();
         BlockPos blockBelow1 = block.down();
-
         if (
                 yDif <= 0.001 &&
                         !BlockUtils.isBlockSolid(blockAbove1) &&
                         BlockUtils.isBlockSolid(blockBelow1) &&
                         BlockUtils.isBlockWalkable(block)
         ) {
-            if (BlockUtils.distanceFromToXZ(block, parent.getBlockPos()) <= 1) {
-                return true;
-            }
+            if (BlockUtils.distanceFromToXZ(block, parent.getBlockPos()) <= 1) return true;
             return node.isClearOnSides();
         }
-
         return false;
     }
 
@@ -149,15 +121,11 @@ public class Utils extends Costs {
         BlockPos block = node.getBlockPos();
         BlockNodeClass parentBlock = node.getParentOfBlock();
         if (parentBlock == null) return false;
-
         double yDiff = block.getY() - parentBlock.getBlockPos().getY();
-
         BlockPos blockAbove1 = block.up();
         BlockPos blockBelow1 = block.down();
-
         BlockPos blockAboveOneParent = parentBlock.getBlockPos().up();
         BlockPos blockAboveTwoParent = parentBlock.getBlockPos().up(2);
-
         if (
                 yDiff == 1 &&
                         BlockUtils.isBlockSolid(blockBelow1) &&
@@ -166,12 +134,9 @@ public class Utils extends Costs {
                         !BlockUtils.isBlockSolid(blockAboveTwoParent) &&
                         BlockUtils.isBlockWalkable(block)
         ) {
-            if (BlockUtils.distanceFromToXZ(block, parentBlock.getBlockPos()) <= 1) {
-                return true;
-            }
+            if (BlockUtils.distanceFromToXZ(block, parentBlock.getBlockPos()) <= 1) return true;
             return node.isClearOnSides();
         }
-
         return false;
     }
 
@@ -179,22 +144,16 @@ public class Utils extends Costs {
         BlockPos block = node.getBlockPos();
         BlockNodeClass parentBlock = node.getParentOfBlock();
         if (parentBlock == null) return false;
-
         double yDiff = block.getY() - parentBlock.getBlockPos().getY();
-
         BlockPos blockBelow1 = block.down();
         BlockPos blockAbove1 = block.up();
-
         if (
                 (yDiff < 0 && yDiff > -4 && BlockUtils.isBlockSolid(blockBelow1) && !BlockUtils.isBlockSolid(blockAbove1)) &&
                         BlockUtils.isBlockWalkable(block)
         ) {
-            if (BlockUtils.distanceFromToXZ(block, parentBlock.getBlockPos()) <= 1) {
-                return true;
-            }
+            if (BlockUtils.distanceFromToXZ(block, parentBlock.getBlockPos()) <= 1) return true;
             return node.isClearOnSides();
         }
-
         return false;
     }
 
@@ -202,7 +161,6 @@ public class Utils extends Costs {
         BlockPos block = node.getBlockPos();
         BlockNodeClass parent = node.getParentOfBlock();
         if (parent == null) return false;
-
         int yDiff = block.getY() - parent.getBlockPos().getY();
         if (yDiff == 1 && BlockUtils.isStepableUp(parent.getBlockPos(), block)) {
             BlockPos above = block.up();
@@ -211,19 +169,15 @@ public class Utils extends Costs {
         return false;
     }
 
-
     public static boolean isAllClearToY(int y1, int y2, BlockPos block) {
         boolean isGreater = y1 < y2;
         int rem = 0;
-
         while (y1 != y2) {
             BlockPos curBlock = block.add(0, rem, 0);
-
             if (!BlockUtils.isBlockSolid(curBlock)) return false;
             y2--;
             rem--;
         }
-
         return true;
     }
 

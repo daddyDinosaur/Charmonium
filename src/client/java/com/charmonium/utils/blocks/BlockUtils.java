@@ -10,27 +10,16 @@ import net.minecraft.util.math.*;
 import net.minecraft.world.RaycastContext;
 import net.minecraft.block.*;
 import net.minecraft.state.property.Properties;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class BlockUtils {
     private static final MinecraftClient mc = MinecraftClient.getInstance();
 
     public enum BlockSides {
-        up,
-        down,
-        posX,
-        posZ,
-        negX,
-        negZ,
-        NONE
+        up, down, posX, posZ, negX, negZ, NONE
     }
 
-    public static final List<Block> walkables = Arrays.asList(
+    public static final Set<Block> walkables = Set.of(
             Blocks.AIR,
             Blocks.OAK_WALL_SIGN,
             Blocks.SUGAR_CANE,
@@ -48,12 +37,13 @@ public class BlockUtils {
     );
 
     public static BlockState getBlockState(BlockPos blockPos) {
-        if (mc.world == null) return null;
-        return mc.world.getBlockState(blockPos);
+        var w = mc.world;
+        return w == null ? null : w.getBlockState(blockPos);
     }
 
     public static Block getBlockType(BlockPos blockPos) {
-        return getBlockState(blockPos).getBlock();
+        var state = getBlockState(blockPos);
+        return state == null ? Blocks.AIR : state.getBlock();
     }
 
     public static BlockPos fromVecToBP(Vec3d block) {
@@ -64,29 +54,20 @@ public class BlockUtils {
         return new Vec3d(block.getX(), block.getY(), block.getZ());
     }
 
+    private static final Set<Block> carpetBlocks = Set.of(
+            Blocks.WHITE_CARPET, Blocks.ORANGE_CARPET, Blocks.MAGENTA_CARPET, Blocks.LIGHT_BLUE_CARPET,
+            Blocks.YELLOW_CARPET, Blocks.LIME_CARPET, Blocks.PINK_CARPET, Blocks.GRAY_CARPET,
+            Blocks.LIGHT_GRAY_CARPET, Blocks.CYAN_CARPET, Blocks.PURPLE_CARPET, Blocks.BLUE_CARPET,
+            Blocks.BROWN_CARPET, Blocks.GREEN_CARPET, Blocks.RED_CARPET, Blocks.BLACK_CARPET
+    );
+
     public static boolean isCarpet(BlockPos pos) {
-        Block block = getBlockType(pos);
-        return block == Blocks.WHITE_CARPET
-                || block == Blocks.ORANGE_CARPET
-                || block == Blocks.MAGENTA_CARPET
-                || block == Blocks.LIGHT_BLUE_CARPET
-                || block == Blocks.YELLOW_CARPET
-                || block == Blocks.LIME_CARPET
-                || block == Blocks.PINK_CARPET
-                || block == Blocks.GRAY_CARPET
-                || block == Blocks.LIGHT_GRAY_CARPET
-                || block == Blocks.CYAN_CARPET
-                || block == Blocks.PURPLE_CARPET
-                || block == Blocks.BLUE_CARPET
-                || block == Blocks.BROWN_CARPET
-                || block == Blocks.GREEN_CARPET
-                || block == Blocks.RED_CARPET
-                || block == Blocks.BLACK_CARPET;
+        return carpetBlocks.contains(getBlockType(pos));
     }
 
     public static boolean isBlockWalkable(BlockPos pos) {
-        if (isCarpet(pos)) return true;
-        Block blockType = getBlockType(pos);
+        var blockType = getBlockType(pos);
+        if (carpetBlocks.contains(blockType)) return true;
         return blockType == Blocks.AIR ||
                 blockType == Blocks.POPPY ||
                 blockType == Blocks.SHORT_GRASS ||
@@ -95,64 +76,51 @@ public class BlockUtils {
                 blockType == Blocks.LILAC;
     }
 
+    private static final Set<Block> clearlyNotSolid = Set.of(
+            Blocks.WATER, Blocks.LAVA, Blocks.AIR, Blocks.POPPY, Blocks.SHORT_GRASS, Blocks.TALL_GRASS, Blocks.DANDELION, Blocks.LILAC, Blocks.BUBBLE_COLUMN
+    );
+
     public static boolean isBlockSolid(BlockPos block) {
-        Block blockType = getBlockType(block);
-        return blockType != Blocks.WATER &&
-                blockType != Blocks.LAVA &&
-                blockType != Blocks.AIR &&
-                blockType != Blocks.POPPY &&
-                blockType != Blocks.SHORT_GRASS &&
-                blockType != Blocks.TALL_GRASS &&
-                blockType != Blocks.DANDELION &&
-                blockType != Blocks.LILAC &&
-                blockType != Blocks.BUBBLE_COLUMN;
+        return !clearlyNotSolid.contains(getBlockType(block));
     }
 
     public static boolean isStepableUp(BlockPos from, BlockPos to) {
         if (to.getY() - from.getY() != 1) return false;
         BlockPos blockBelow = to.down();
         Block blockBelowType = getBlockType(blockBelow);
-        if (blockBelowType instanceof SlabBlock) {
-            BlockState state = getBlockState(blockBelow);
-            if (state.get(Properties.SLAB_TYPE) == SlabType.BOTTOM) return true;
-        }
+        BlockState state = getBlockState(blockBelow);
+        if (blockBelowType instanceof SlabBlock && state.get(Properties.SLAB_TYPE) == SlabType.BOTTOM) return true;
         if (blockBelowType instanceof StairsBlock) {
-            BlockState state = getBlockState(blockBelow);
             Direction stairFacing = state.get(Properties.HORIZONTAL_FACING);
             int dx = to.getX() - from.getX();
             int dz = to.getZ() - from.getZ();
-            if ((dx != 0 && stairFacing.getAxis() == Direction.Axis.X && Math.signum(dx) == Math.signum(stairFacing.getVector().getX())) ||
-                    (dz != 0 && stairFacing.getAxis() == Direction.Axis.Z && Math.signum(dz) == Math.signum(stairFacing.getVector().getZ()))) {
-                return state.get(Properties.BLOCK_HALF) == BlockHalf.BOTTOM;
-            }
+            if (((dx != 0 && stairFacing.getAxis() == Direction.Axis.X && Math.signum(dx) == Math.signum(stairFacing.getVector().getX())) ||
+                    (dz != 0 && stairFacing.getAxis() == Direction.Axis.Z && Math.signum(dz) == Math.signum(stairFacing.getVector().getZ()))) &&
+                    state.get(Properties.BLOCK_HALF) == BlockHalf.BOTTOM) return true;
         }
         return false;
     }
 
     public static double distanceFromToXZ(BlockPos pos1, BlockPos pos2) {
-        final double d1 = pos1.getX() - pos2.getX();
-        final double d2 = pos1.getZ() - pos2.getZ();
-        return MathHelper.sqrt((float) (d1 * d1 + d2 * d2));
+        double d1 = pos1.getX() - pos2.getX();
+        double d2 = pos1.getZ() - pos2.getZ();
+        return Math.sqrt(d1 * d1 + d2 * d2);
     }
 
     public static double distanceFromToXZ(Vec3d vec1, Vec3d vec2) {
-        final double d1 = vec1.x - vec2.x;
-        final double d2 = vec1.z - vec2.z;
-        return MathHelper.sqrt((float) (d1 * d1 + d2 * d2));
+        double d1 = vec1.x - vec2.x, d2 = vec1.z - vec2.z;
+        return Math.sqrt(d1 * d1 + d2 * d2);
     }
 
     public static Vec3d getCenteredVec(Vec3d init) {
-        return init.add(0.5, 0, 0.5);
+        return new Vec3d(init.x + 0.5, init.y, init.z + 0.5);
     }
 
     public static int amountNonAir(Iterable<BlockPos> blocks) {
-        AtomicInteger air = new AtomicInteger();
-        blocks.forEach(i -> {
-            if (!isBlockWalkable(i)) {
-                air.getAndIncrement();
-            }
-        });
-        return air.get();
+        int count = 0;
+        for (BlockPos i : blocks)
+            if (!isBlockWalkable(i)) count++;
+        return count;
     }
 
     public static double distanceFromTo(BlockPos pos1, BlockPos pos2) {
@@ -167,22 +135,35 @@ public class BlockUtils {
     }
 
     public static BlockPos getClosest(List<BlockPos> blocks, BlockPos around) {
-        return blocks.stream()
-                .min(Comparator.comparingDouble(pos -> distanceFromTo(pos, around)))
-                .orElse(null);
+        double minDist = Double.MAX_VALUE;
+        BlockPos closest = null;
+        for (BlockPos pos : blocks) {
+            double d = distanceFromTo(pos, around);
+            if (d < minDist) { minDist = d; closest = pos; }
+        }
+        return closest;
     }
 
     public static Vec3d getClosest(List<Vec3d> blocks, Vec3d around) {
-        return blocks.stream()
-                .min(Comparator.comparingDouble(pos -> pos.distanceTo(around)))
-                .orElse(null);
+        double minDist = Double.MAX_VALUE;
+        Vec3d closest = null;
+        for (Vec3d pos : blocks) {
+            double d = pos.distanceTo(around);
+            if (d < minDist) { minDist = d; closest = pos; }
+        }
+        return closest;
     }
 
     public static BlockPos getClosest(List<BlockPos> blocks, Set<BlockPos> broken, BlockPos around) {
-        return blocks.stream()
-                .filter(pos -> !broken.contains(pos) && RayTracingUtils.isHittable(pos))
-                .min(Comparator.comparingDouble(pos -> distanceFromTo(pos, around)))
-                .orElse(null);
+        double minDist = Double.MAX_VALUE;
+        BlockPos closest = null;
+        for (BlockPos pos : blocks) {
+            if (!broken.contains(pos) && RayTracingUtils.isHittable(pos)) {
+                double d = distanceFromTo(pos, around);
+                if (d < minDist) { minDist = d; closest = pos; }
+            }
+        }
+        return closest;
     }
 
     public static boolean canMineBlock(BlockPos b) {
@@ -196,41 +177,32 @@ public class BlockUtils {
     }
 
     public static List<Vec3d> getAllVisibilityLines(BlockPos pos, Vec3d fromEye, boolean lowerY) {
-        List<Vec3d> lines = new ArrayList<>();
+        List<Vec3d> lines = new ArrayList<>(4);
         int accuracyChecks = 8;
         float accuracy = 1f / accuracyChecks;
         float spaceFromEdge = lowerY ? 0.1f : 8;
+        double baseX = pos.getX(), baseY = pos.getY(), baseZ = pos.getZ();
 
-        for (float x = pos.getX() + spaceFromEdge; x <= pos.getX() + (1f - spaceFromEdge); x += accuracy) {
-            for (float y = pos.getY() + spaceFromEdge; y <= pos.getY() + (1f - spaceFromEdge); y += accuracy) {
-                for (float z = pos.getZ() + spaceFromEdge; z <= pos.getZ() + (1f - spaceFromEdge); z += accuracy) {
+        for (float x = (float)(baseX + spaceFromEdge); x <= baseX + (1f - spaceFromEdge); x += accuracy)
+            for (float y = (float)(baseY + spaceFromEdge); y <= baseY + (1f - spaceFromEdge); y += accuracy)
+                for (float z = (float)(baseZ + spaceFromEdge); z <= baseZ + (1f - spaceFromEdge); z += accuracy) {
                     Vec3d target = new Vec3d(x, y, z);
                     if (fromEye.distanceTo(target) > 4f) continue;
-
                     BlockHitResult hit = mc.world.raycast(new RaycastContext(
-                            fromEye,
-                            target,
+                            fromEye, target,
                             RaycastContext.ShapeType.COLLIDER,
                             RaycastContext.FluidHandling.NONE,
                             mc.player
                     ));
-
-                    if (hit != null && hit.getBlockPos().equals(pos)) {
-                        lines.add(target);
-                    }
+                    if (hit != null && hit.getBlockPos().equals(pos)) lines.add(target);
                 }
-            }
-        }
         return lines;
     }
 
     public static Vec3d getNormalVecBetweenVecsRev(Vec3d vec1, Vec3d vec2) {
         Vec3d dir = vec2.subtract(vec1).normalize();
-        double cos = Math.cos(Math.PI / 2);
-        double sin = Math.sin(Math.PI / 2);
-
-        double x = dir.x * cos - dir.z * sin;
-        double z = dir.x * sin + dir.z * cos;
+        double x = dir.x * 0 - dir.z * 1;
+        double z = dir.x * 1 + dir.z * 0;
         return new Vec3d(x, dir.y, z);
     }
 
@@ -239,64 +211,41 @@ public class BlockUtils {
     }
 
     public static boolean canWalkThrough(BlockPos blockPos, Direction direction) {
-        return canWalkThroughBottom(blockPos, direction) &&
-                canWalkThroughAbove(blockPos.up(), direction);
+        return canWalkThroughBottom(blockPos, direction) && canWalkThroughAbove(blockPos.up(), direction);
     }
 
     public static Block getBlock(BlockPos blockPos) {
-        assert mc.world != null;
-        return mc.world.getBlockState(blockPos).getBlock();
+        var w = mc.world;
+        return w == null ? Blocks.AIR : w.getBlockState(blockPos).getBlock();
     }
 
     private static boolean canWalkThroughBottom(BlockPos blockPos, Direction direction) {
-        if (mc.world == null) return false;
-        BlockState state = mc.world.getBlockState(blockPos);
+        var w = mc.world;
+        if (w == null) return false;
+        BlockState state = w.getBlockState(blockPos);
         Block block = state.getBlock();
-
-        // Check for air column below
         if (isAirColumn(blockPos)) return false;
-
-        // Player vertical position check
         Vec3d playerPos = mc.player.getPos();
-        if (playerPos.y % 1 >= 0.5 && playerPos.y % 1 <= 0.75) return true;
-
-        // Initial walkable blocks
-        if (block instanceof AirBlock ||
-                block instanceof CarpetBlock ||
-                block instanceof SnowBlock) return true;
-
-        // Door handling
-        if (block instanceof DoorBlock && direction != null) {
-            return canWalkThroughDoor(blockPos, state, direction);
-        }
-
-        // Fence and gate handling
+        double remY = playerPos.y % 1;
+        if (remY >= 0.5 && remY <= 0.75) return true;
+        if (block instanceof AirBlock || block instanceof CarpetBlock || block instanceof SnowBlock) return true;
+        if (block instanceof DoorBlock && direction != null) return canWalkThroughDoor(blockPos, state, direction);
         if (block instanceof FenceBlock) return false;
         if (block instanceof FenceGateBlock) return state.get(Properties.OPEN);
-
-        // Trapdoor handling
         if (block instanceof TrapdoorBlock) {
             if (state.get(Properties.OPEN)) return true;
             state.get(Properties.BLOCK_HALF);
             return false;
         }
-
-        // Slab handling
         if (block instanceof SlabBlock) {
-            if (playerPos.y % 1 < 0.5) {
-                return state.get(Properties.SLAB_TYPE) == SlabType.BOTTOM;
-            }
+            if (remY < 0.5) return state.get(Properties.SLAB_TYPE) == SlabType.BOTTOM;
             return true;
         }
-
-        // Stairs handling
         if (block instanceof StairsBlock) {
             Direction facing = state.get(Properties.HORIZONTAL_FACING);
             BlockPos playerBlock = mc.player.getBlockPos();
             BlockPos diff = blockPos.subtract(playerBlock);
-
             if (state.get(Properties.BLOCK_HALF) == BlockHalf.TOP) return false;
-
             return switch (facing) {
                 case NORTH -> diff.getZ() < 0;
                 case SOUTH -> diff.getZ() > 0;
@@ -305,26 +254,17 @@ public class BlockUtils {
                 default -> false;
             };
         }
-
         return state.isAir();
     }
 
     public static ArrayList<BlockSides> getAdjBlocksNotCovered(BlockPos blockToSearch) {
-        ArrayList<BlockSides> blockSidesNotCovered = new ArrayList<>();
-
-        if (isPassable(blockToSearch.up()))
-            blockSidesNotCovered.add(BlockSides.up);
-        if (isPassable(blockToSearch.down()))
-            blockSidesNotCovered.add(BlockSides.down);
-        if (isPassable(blockToSearch.add(1, 0, 0)))
-            blockSidesNotCovered.add(BlockSides.posX);
-        if (isPassable(blockToSearch.add(-1, 0, 0)))
-            blockSidesNotCovered.add(BlockSides.negX);
-        if (isPassable(blockToSearch.add(0, 0, 1)))
-            blockSidesNotCovered.add(BlockSides.posZ);
-        if (isPassable(blockToSearch.add(0, 0, -1)))
-            blockSidesNotCovered.add(BlockSides.negZ);
-
+        ArrayList<BlockSides> blockSidesNotCovered = new ArrayList<>(6);
+        if (isPassable(blockToSearch.up())) blockSidesNotCovered.add(BlockSides.up);
+        if (isPassable(blockToSearch.down())) blockSidesNotCovered.add(BlockSides.down);
+        if (isPassable(blockToSearch.add(1, 0, 0))) blockSidesNotCovered.add(BlockSides.posX);
+        if (isPassable(blockToSearch.add(-1, 0, 0))) blockSidesNotCovered.add(BlockSides.negX);
+        if (isPassable(blockToSearch.add(0, 0, 1))) blockSidesNotCovered.add(BlockSides.posZ);
+        if (isPassable(blockToSearch.add(0, 0, -1))) blockSidesNotCovered.add(BlockSides.negZ);
         return blockSidesNotCovered;
     }
 
@@ -336,44 +276,32 @@ public class BlockUtils {
         return isPassable(getBlock(block));
     }
 
-
     private static boolean isAirColumn(BlockPos pos) {
-        for (int y = pos.getY(); y >= mc.world.getBottomY(); y--) {
-            BlockPos checkPos = new BlockPos(pos.getX(), y, pos.getZ());
-            if (!mc.world.getBlockState(checkPos).isAir()) return false;
-        }
+        var w = mc.world;
+        int y = pos.getY(), minY = w == null ? 0 : w.getBottomY();
+        int x = pos.getX(), z = pos.getZ();
+        for (; y >= minY; y--) if (!w.getBlockState(new BlockPos(x, y, z)).isAir()) return false;
         return true;
     }
 
     private static boolean canWalkThroughDoor(BlockPos pos, BlockState state, Direction direction) {
         Direction doorFacing = state.get(Properties.HORIZONTAL_FACING);
         boolean isOpen = state.get(Properties.OPEN);
-        boolean isLowerHalf = state.get(Properties.DOUBLE_BLOCK_HALF) == DoubleBlockHalf.LOWER;
-
-        // Custom door logic based on direction and player position
         return isOpen && doorFacing.getAxis() == direction.getAxis();
     }
 
     private static boolean canWalkThroughAbove(BlockPos blockPos, Direction direction) {
-        if (mc.world == null) return false;
-        BlockState state = mc.world.getBlockState(blockPos);
+        var w = mc.world;
+        if (w == null) return false;
+        BlockState state = w.getBlockState(blockPos);
         Block block = state.getBlock();
-
         if (block instanceof CarpetBlock) return false;
-
-        if (block instanceof DoorBlock && direction != null) {
-            return canWalkThroughDoor(blockPos.down(), state, direction);
-        }
-
+        if (block instanceof DoorBlock && direction != null) return canWalkThroughDoor(blockPos.down(), state, direction);
         if (block instanceof TrapdoorBlock) {
             Direction playerFacing = Direction.fromHorizontalDegrees(mc.player.getYaw());
             Direction trapdoorFacing = state.get(Properties.HORIZONTAL_FACING);
-            boolean standingOn = mc.player.getBlockPos().up().equals(blockPos);
-
-            return state.get(Properties.OPEN) &&
-                    trapdoorFacing.getAxis() == playerFacing.getAxis();
+            return state.get(Properties.OPEN) && trapdoorFacing.getAxis() == playerFacing.getAxis();
         }
-
         return state.isAir();
     }
 }

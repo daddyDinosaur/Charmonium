@@ -34,62 +34,38 @@ public class BlockNodeClass {
     public HashSet<BlockPos> getBroken() { return broken; }
     public Vec3d getVec() { return BlockUtils.fromBPToVec(blockPos); }
     public boolean isOnSide() { return parentOfBlock != null && BlockUtils.distanceFromTo(blockPos, parentOfBlock.blockPos) >= 1; }
+
     public boolean isClearOnSides() {
         if (parentOfBlock == null) return false;
         BlockPos parentPos = parentOfBlock.blockPos;
         Vec3d currentVec = BlockUtils.fromBPToVec(blockPos);
         Vec3d parentVec = BlockUtils.fromBPToVec(parentPos);
         Vec3d perpNorm = BlockUtils.getNormalVecBetweenVecsRev(currentVec, parentVec);
-        Vec3d centofLine = new Vec3d(
-                (parentPos.getX() + blockPos.getX()) / 2.0,
-                (parentPos.getY() + blockPos.getY()) / 2.0,
-                (parentPos.getZ() + blockPos.getZ()) / 2.0
-        );
+        double cx = (parentPos.getX() + blockPos.getX()) * 0.5;
+        double cy = (parentPos.getY() + blockPos.getY()) * 0.5;
+        double cz = (parentPos.getZ() + blockPos.getZ()) * 0.5;
         BlockPos[] checkPositions = {
-                new BlockPos(
-                        (int) (centofLine.x + perpNorm.x),
-                        (int) centofLine.y,
-                        (int) (centofLine.z + perpNorm.z)
-                ),
-                new BlockPos(
-                        (int) (centofLine.x - perpNorm.x),
-                        (int) centofLine.y,
-                        (int) (centofLine.z - perpNorm.z)
-                ),
-                new BlockPos(
-                        (int) (centofLine.x + perpNorm.x),
-                        (int) (centofLine.y + 1),
-                        (int) (centofLine.z + perpNorm.z)
-                ),
-                new BlockPos(
-                        (int) (centofLine.x - perpNorm.x),
-                        (int) (centofLine.y + 1),
-                        (int) (centofLine.z - perpNorm.z)
-                )
+                new BlockPos((int) (cx + perpNorm.x), (int) cy, (int) (cz + perpNorm.z)),
+                new BlockPos((int) (cx - perpNorm.x), (int) cy, (int) (cz - perpNorm.z)),
+                new BlockPos((int) (cx + perpNorm.x), (int) (cy + 1), (int) (cz + perpNorm.z)),
+                new BlockPos((int) (cx - perpNorm.x), (int) (cy + 1), (int) (cz - perpNorm.z))
         };
-        for (BlockPos pos : checkPositions)
-            if (BlockUtils.isBlockSolid(pos))
-                return false;
+        for (BlockPos pos : checkPositions) if (BlockUtils.isBlockSolid(pos)) return false;
         return true;
     }
 
     public BlockNodeClass withParent(BlockNodeClass parent, double newG, double newH) {
-        return new BlockNodeClass(parent, blockPos, newG, newH, newG+newH, actionType, new HashSet<>(broken));
+        return new BlockNodeClass(parent, blockPos, newG, newH, newG + newH, actionType, new HashSet<>(broken));
     }
-
     public BlockNodeClass withActionType(ActionTypes type) {
         return new BlockNodeClass(parentOfBlock, blockPos, gCost, hCost, totalCost, type, broken);
     }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof BlockNodeClass node)) return false;
-        return Objects.equals(blockPos, node.blockPos);
+        return blockPos.equals(node.blockPos);
     }
-
     @Override
-    public int hashCode() {
-        return Objects.hash(blockPos);
-    }
+    public int hashCode() { return blockPos.hashCode(); }
 }
