@@ -11,10 +11,7 @@ import com.charmonium.module.Module;
 import com.charmonium.settings.types.*;
 import com.charmonium.utils.blocks.BlockUtils;
 import com.charmonium.utils.misc.KeyBindUtils;
-import com.charmonium.utils.pathfinding.AStarPathFinder;
-import com.charmonium.utils.pathfinding.BlockNodeClass;
-import com.charmonium.utils.pathfinding.PathFinderConfig;
-import com.charmonium.utils.pathfinding.Walker;
+import com.charmonium.utils.pathfinding.*;
 import com.charmonium.utils.render.Color;
 import com.charmonium.utils.render.Render3D;
 import com.charmonium.utils.rotation.Rotation;
@@ -76,11 +73,11 @@ public class Walking extends Module implements TickListener, Render3DListener {
             CharmoniumClient.sendMessage("Path found! Starting walk...");
 
             Walker walker = new Walker();
-            walker.run(pathVec, true, false, 2);
+            List<AOTVPath.PathAction> optimizedPath = AOTVPath.optimize(pathVec);
+            walker.runWithActions(optimizedPath, true);
         } else {
             CharmoniumClient.sendMessage("No path found to the given coordinates.");
             currentPath.clear();
-            //disable();
         }
     }
 

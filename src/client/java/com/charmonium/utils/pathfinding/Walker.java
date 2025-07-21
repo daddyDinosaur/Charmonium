@@ -2,8 +2,10 @@ package com.charmonium.utils.pathfinding;
 
 import com.charmonium.Charmonium;
 import com.charmonium.CharmoniumClient;
+import com.charmonium.event.events.PositionPacketEvent;
 import com.charmonium.event.events.Render3DEvent;
 import com.charmonium.event.events.TickEvent;
+import com.charmonium.event.listeners.PositionPacketListener;
 import com.charmonium.event.listeners.Render3DListener;
 import com.charmonium.event.listeners.TickListener;
 import com.charmonium.managers.RotationManager;
@@ -19,7 +21,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Walker implements TickListener, Render3DListener {
+public class Walker implements TickListener, Render3DListener, PositionPacketListener {
     private final RotationManager rotation = Charmonium.getInstance().rotationManager;
     private boolean state = false;
     private List<Vec3d> curPath = new ArrayList<>();
@@ -45,12 +47,19 @@ public class Walker implements TickListener, Render3DListener {
     private static final long MIN_ROTATION_INTERVAL_MS = 100;
     public static float rotationTime = 500f;
     public static float rotationTimeRandomness = 300;
+    private List<AOTVPath.PathAction> actionPath = new ArrayList<>();
+    private int pathIndex = 0;
+    private AOTVPath.PathAction curAction = null;
+    private static final float AOTV_ROTATION_TIME = 250f;
+    private static final float AOTV_ROTATION_TIME_RANDOMNESS = 80f;
+    private boolean awaitingTeleport = false;
 
     public static long getRandomRotationTime() {
         return (long) (rotationTime + (float) Math.random() * rotationTimeRandomness);
     }
 
     public void run(List<Vec3d> path, boolean walkState) {
+        Charmonium.getInstance().eventManager.AddListener(PositionPacketListener.class, this);
         Charmonium.getInstance().eventManager.AddListener(TickListener.class, this);
         Charmonium.getInstance().eventManager.AddListener(Render3DListener.class, this);
         state = walkState;
@@ -67,6 +76,7 @@ public class Walker implements TickListener, Render3DListener {
     }
 
     public void run(List<Vec3d> path, boolean walkState, boolean isShiftClose, double distToToShift) {
+        Charmonium.getInstance().eventManager.AddListener(PositionPacketListener.class, this);
         Charmonium.getInstance().eventManager.AddListener(TickListener.class, this);
         Charmonium.getInstance().eventManager.AddListener(Render3DListener.class, this);
         state = walkState;
@@ -84,6 +94,24 @@ public class Walker implements TickListener, Render3DListener {
         lastEaseRequestTime = 0;
     }
 
+    public void runWithActions(List<AOTVPath.PathAction> path, boolean walkState) {
+        Charmonium.getInstance().eventManager.AddListener(PositionPacketListener.class, this);
+        Charmonium.getInstance().eventManager.AddListener(TickListener.class, this);
+        Charmonium.getInstance().eventManager.AddListener(Render3DListener.class, this);
+        state = walkState;
+        actionPath = new ArrayList<>(path);
+        pathIndex = 0;
+        curAction = actionPath.isEmpty() ? null : actionPath.get(0);
+        curVec = curAction == null ? null : curAction.pos;
+        prev = null;
+        endBlock = actionPath.isEmpty() ? curVec : actionPath.get(actionPath.size() - 1).pos;
+        currentHumanPitch = getRandomPitch();
+        pitchSinceLastUpdate = 0;
+        lastYawTarget = Float.NaN;
+        lastPitchTarget = Float.NaN;
+        lastEaseRequestTime = 0;
+    }
+
     @Override
     public void onTick(TickEvent.Pre event) {}
 
@@ -92,11 +120,11 @@ public class Walker implements TickListener, Render3DListener {
         if (!state) return;
 
         MinecraftClient mc = MinecraftClient.getInstance();
-        assert mc.player != null;
+        if (mc.player == null) return;
         Vec3d currentPos = mc.player.getPos();
-        //trySkipNodes(currentPos);
 
-        if (recentPositions.size() >= MAX_RECENT_POSITIONS) recentPositions.removeFirst();
+        if (recentPositions.size() >= MAX_RECENT_POSITIONS)
+            recentPositions.removeFirst();
         recentPositions.add(currentPos);
 
         if (isOscillatingInBox()) {
@@ -104,75 +132,202 @@ public class Walker implements TickListener, Render3DListener {
             return;
         }
 
-        if (curVec == null || isAtLastBlock(currentPos)) {
+        if (curAction == null || isAtLastBlock(currentPos)) {
             stop();
             return;
         }
 
-        double curDist = BlockUtils.distanceFromToXZ(currentPos, curVec);
-
-        if (curDist < 1 && mc.player.getY() + 0.5 >= curVec.y) {
-            nextBlock();
-            return;
-        }
-
-        if (!mc.player.isOnGround()) {
-            if (!curPath.isEmpty()) {
-                Vec3d newClosest = BlockUtils.getClosest(curPath, mc.player.getPos());
-                if (newClosest == null || !newClosest.equals(curVec)) {
-                    removeUntil(newClosest);
-                    curVec = newClosest;
+        if (curAction.actionType == ActionTypes.AOTV) {
+            int skip = 0;
+            int lookahead = 3;
+            Vec3d playerPos = mc.player.getPos();
+            while (pathIndex + skip < actionPath.size()) {
+                AOTVPath.PathAction nextA = actionPath.get(pathIndex + skip);
+                if (nextA.actionType != ActionTypes.AOTV) break;
+                if (playerPos.distanceTo(nextA.pos) < 1.5) {
+                    skip++;
+                } else {
+                    break;
                 }
             }
-        }
 
-        if (mc.player.isOnGround()) {
-            HumanRotation rot = getHumanLookTargetAndPitch(currentPos);
-            float desiredYaw = rot.yaw;
-            float desiredPitch = rot.pitch;
-
-            boolean needRotate = false;
-            if (Float.isNaN(lastYawTarget) || Float.isNaN(lastPitchTarget)) {
-                needRotate = true;
-            } else if (Math.abs(MathHelper.wrapDegrees(desiredYaw - lastYawTarget)) > ROTATION_ANGLE_EPSILON
-                    || Math.abs(desiredPitch - lastPitchTarget) > ROTATION_ANGLE_EPSILON) {
-                needRotate = true;
-            } else if (!rotation.isRotating() && System.currentTimeMillis() - lastEaseRequestTime > MIN_ROTATION_INTERVAL_MS) {
-                needRotate = true;
+            if (skip > 0) {
+                pathIndex += skip;
+                curAction = actionPath.get(pathIndex);
+                curVec = curAction.pos;
             }
-            if (needRotate) {
-                rotation.easeTo(new Rotation(desiredYaw, desiredPitch), getRandomRotationTime() * 2);
-                lastYawTarget = desiredYaw;
-                lastPitchTarget = desiredPitch;
-                lastEaseRequestTime = System.currentTimeMillis();
+
+            int bestIdx = pathIndex;
+            for (int n = 1; n <= lookahead && pathIndex + n < actionPath.size(); n++) {
+                AOTVPath.PathAction nextA = actionPath.get(pathIndex + n);
+                if (nextA.actionType != ActionTypes.AOTV) break;
+                if (isClearAotvLine(playerPos, nextA.pos) && playerPos.distanceTo(nextA.pos) < 12.1) {
+                    bestIdx = pathIndex + n;
+                }
+            }
+            if (bestIdx > pathIndex) {
+                pathIndex = bestIdx;
+                curAction = actionPath.get(pathIndex);
+                curVec = curAction.pos;
+                if (pathIndex + 1 < actionPath.size() && actionPath.get(pathIndex + 1).actionType == ActionTypes.AOTV && !awaitingTeleport) {
+                    preRotateForNextAotv(actionPath.get(pathIndex + 1).pos);
+                }
+                return;
+            }
+            if (awaitingTeleport) {
+                KeyBindUtils.stopMovement();
+                return;
+            }
+            tryAotvMove(curAction.pos);
+        } else {
+            double curDist = BlockUtils.distanceFromToXZ(currentPos, curAction.pos);
+            if (curDist < 1 && mc.player.getY() + 0.5 >= curAction.pos.y) {
+                nextActionNode();
+                return;
+            }
+
+            if (!mc.player.isOnGround()) {
+                if (!actionPath.isEmpty() && pathIndex + 1 < actionPath.size()) {
+                    Vec3d newClosest = BlockUtils.getClosest(posListFromActions(pathIndex), currentPos);
+                    if (newClosest == null || !newClosest.equals(curAction.pos)) {
+                        jumpAheadToVec(newClosest);
+                    }
+                }
+            }
+
+            if (mc.player.isOnGround()) {
+                HumanRotation rot = getHumanLookTargetAndPitch(currentPos);
+                float desiredYaw = rot.yaw;
+                float desiredPitch = rot.pitch;
+
+                boolean needRotate = false;
+                if (Float.isNaN(lastYawTarget) || Float.isNaN(lastPitchTarget)) needRotate = true;
+                else if (Math.abs(MathHelper.wrapDegrees(desiredYaw - lastYawTarget)) > ROTATION_ANGLE_EPSILON
+                        || Math.abs(desiredPitch - lastPitchTarget) > ROTATION_ANGLE_EPSILON) needRotate = true;
+                else if (!rotation.isRotating() && System.currentTimeMillis() - lastEaseRequestTime > MIN_ROTATION_INTERVAL_MS) needRotate = true;
+                if (needRotate) {
+                    rotation.easeTo(new Rotation(desiredYaw, desiredPitch), getRandomRotationTime() * 2);
+                    lastYawTarget = desiredYaw;
+                    lastPitchTarget = desiredPitch;
+                    lastEaseRequestTime = System.currentTimeMillis();
+                }
+            }
+
+            if (actionPath.size() - pathIndex > 2 &&
+                    BlockUtils.distanceFromToXZ(currentPos, actionPath.get(pathIndex + 1).pos) < 1.5 &&
+                    isPathClear(currentPos, actionPath.get(pathIndex + 2).pos)) {
+                pathIndex += 2;
+                curAction = actionPath.get(pathIndex);
+                curVec = curAction.pos;
+            }
+
+            Set<KeyBinding> neededKeyPresses = KeyBindUtils.getMovementDirections(currentPos, curVec);
+            KeyBindUtils.getPathfindingControls().forEach(k ->
+                    KeyBindUtils.setKeyBindState(k, neededKeyPresses.contains(k)));
+
+            mc.player.setSprinting(true);
+            KeyBindUtils.setKeyBindState(mc.options.jumpKey, isCloseToJump());
+
+            if (isShift) {
+                isShifting = BlockUtils.distanceFromTo(mc.player.getPos(), endBlock) < distToShift &&
+                        mc.player.getPos().y == curVec.y;
+            }
+            KeyBindUtils.setKeyBindState(mc.options.sneakKey, isShifting);
+        }
+    }
+
+    @Override
+    public void onPositionPacket(PositionPacketEvent event) {
+        if (awaitingTeleport) {
+            awaitingTeleport = false;
+            nextActionNode();
+            if (curAction != null && curAction.actionType == ActionTypes.AOTV) {
+                preRotateForNextAotv(curAction.pos);
             }
         }
+    }
 
-        if (curPath.size() > 2 &&
-                BlockUtils.distanceFromToXZ(currentPos, curPath.get(1)) < 1.5 &&
-                isPathClear(currentPos, curPath.get(2))) {
-            removeUntil(curPath.get(2));
-            curVec = curPath.get(0);
+    private boolean isClearAotvLine(Vec3d from, Vec3d to) {
+        double dist = from.distanceTo(to);
+        if (dist > 12.1) return false;
+        Vec3d dir = to.subtract(from).normalize();
+        int steps = (int) Math.ceil(dist / 0.8);
+        for (int i = 0; i <= steps; i++) {
+            Vec3d pt = from.add(dir.multiply(i * 0.8));
+            BlockPos bp = new BlockPos((int) pt.x, (int) pt.y, (int) pt.z);
+            if (BlockUtils.isBlockSolid(bp)) return false;
         }
+        return true;
+    }
 
-        Set<KeyBinding> neededKeyPresses = KeyBindUtils.getMovementDirections(currentPos, curVec);
-        KeyBindUtils.getPathfindingControls().forEach(k ->
-                KeyBindUtils.setKeyBindState(k, neededKeyPresses.contains(k)));
+    private double distanceToXZ(Vec3d a, Vec3d b) {
+        double dx = a.x - b.x, dz = a.z - b.z;
+        return Math.sqrt(dx * dx + dz * dz);
+    }
 
-        mc.player.setSprinting(true);
-        KeyBindUtils.setKeyBindState(mc.options.jumpKey, isCloseToJump());
+    private void preRotateForNextAotv(Vec3d nextDest) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player == null) return;
+        Vec3d eye = mc.player.getEyePos();
+        Vec3d target = nextDest;
+        double dx = target.x - eye.x, dy = target.y - eye.y, dz = target.z - eye.z;
+        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        float horiz = (float) Math.sqrt(dx * dx + dz * dz);
+        float pitch = (float) (-Math.toDegrees(Math.atan2(dy, horiz)));
+        long rotTime = (long)(AOTV_ROTATION_TIME + Math.random() * AOTV_ROTATION_TIME_RANDOMNESS);
+        rotation.easeTo(new Rotation(yaw, pitch), rotTime);
+        lastYawTarget = yaw;
+        lastPitchTarget = pitch;
+        lastEaseRequestTime = System.currentTimeMillis();
+    }
 
-        if (isShift) {
-            isShifting = BlockUtils.distanceFromTo(mc.player.getPos(), endBlock) < distToShift &&
-                    mc.player.getPos().y == curVec.y;
+    private boolean tryAotvMove(Vec3d dest) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player == null) return true;
+        Vec3d eye = mc.player.getEyePos();
+        Vec3d target = dest;
+        double dx = target.x - eye.x, dy = target.y - eye.y, dz = target.z - eye.z;
+        float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0);
+        float horiz = (float) Math.sqrt(dx * dx + dz * dz);
+        float pitch = (float) (-Math.toDegrees(Math.atan2(dy, horiz)));
+        if (!rotation.isRotating()) {
+            long rotTime = (long)(AOTV_ROTATION_TIME + Math.random() * AOTV_ROTATION_TIME_RANDOMNESS);
+            rotation.easeTo(new Rotation(yaw, pitch), rotTime);
+            return true;
         }
-        KeyBindUtils.setKeyBindState(mc.options.sneakKey, isShifting);
+        if (isFacing(target, 9)) {
+            if (holdAotvItem()) {
+                mc.interactionManager.interactItem(mc.player, net.minecraft.util.Hand.MAIN_HAND);
+                awaitingTeleport = true;
+                return true;
+            }
+        }
+        KeyBindUtils.stopMovement();
+        return true;
+    }
 
-//        Vec3d lookTarget = getLookAheadTarget();
-//        if (BlockUtils.distanceFromTo(currentPos, endBlock) > 1) {
-//            Rotation targetRot = RotationManager.getRotation(lookTarget);
-//            rotation.followTo(new Rotation(targetRot.getYaw(), 0f), getRandomRotationTime() * 2);
-//        }
+    private boolean isFacing(Vec3d target, double toleranceDegrees) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        Vec3d eye = mc.player.getEyePos();
+        Vec3d look = mc.player.getRotationVec(1.0F);
+        Vec3d to = target.subtract(eye).normalize();
+        double angle = Math.acos(look.dotProduct(to));
+        return angle <= Math.toRadians(toleranceDegrees);
+    }
+
+    private boolean holdAotvItem() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        int slot = -1;
+        for (int i = 0; i < 9; i++) {
+            var itemStack = mc.player.getInventory().getStack(i);
+            if (itemStack != null && itemStack.getName().getString().contains("Aspect of the")) {
+                slot = i;
+                break;
+            }
+        }
+        if (slot == -1) return false;
+        mc.player.getInventory().setSelectedSlot(slot);
+        return true;
     }
 
     private void nextBlock() {
@@ -210,6 +365,40 @@ public class Walker implements TickListener, Render3DListener {
         while (!curPath.isEmpty()) {
             if (curPath.getFirst().equals(vec)) return;
             curPath.removeFirst();
+        }
+    }
+
+    private void nextActionNode() {
+        if (actionPath == null || pathIndex >= actionPath.size() - 1) {
+            curAction = null;
+            stop();
+            return;
+        }
+        prev = curVec;
+        pathIndex++;
+        curAction = actionPath.get(pathIndex);
+        curVec = curAction.pos;
+        pitchSinceLastUpdate++;
+        if (pitchSinceLastUpdate >= NODES_PER_PITCH) {
+            currentHumanPitch = getRandomPitch();
+            pitchSinceLastUpdate = 0;
+        }
+    }
+
+    private List<Vec3d> posListFromActions(int from) {
+        List<Vec3d> out = new ArrayList<>();
+        for (int i = from; i < actionPath.size(); ++i) out.add(actionPath.get(i).pos);
+        return out;
+    }
+
+    private void jumpAheadToVec(Vec3d target) {
+        for (int i = pathIndex; i < actionPath.size(); i++) {
+            if (actionPath.get(i).pos.equals(target)) {
+                pathIndex = i;
+                curAction = actionPath.get(pathIndex);
+                curVec = curAction.pos;
+                return;
+            }
         }
     }
 
@@ -374,6 +563,7 @@ public class Walker implements TickListener, Render3DListener {
         lastEaseRequestTime = 0;
         Charmonium.getInstance().eventManager.RemoveListener(TickListener.class, this);
         Charmonium.getInstance().eventManager.RemoveListener(Render3DListener.class, this);
+        Charmonium.getInstance().eventManager.RemoveListener(PositionPacketListener.class, this);
     }
 
     public boolean isDone() {
